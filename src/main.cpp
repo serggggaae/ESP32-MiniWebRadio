@@ -2636,6 +2636,7 @@ void loop() {
         //--------------------------------------AMBIENT LIGHT SENSOR BH1750---------------------------------------------------------------------------
         if(_f_BH1750_found){
             int32_t ambVal = BH1750.getBrightness();
+		
             if(ambVal > 1500) ambVal = 1500;
             _bh1750Value = map_l(ambVal, 0, 1500, 0, 100);
         //    log_i("_bh1750Value %i, _brightness %i", _bh1750Value, _brightness);
