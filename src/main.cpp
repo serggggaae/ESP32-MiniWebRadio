@@ -2648,6 +2648,7 @@ void loop() {
         }
     } //  END _f_1sec
 
+	
     if(_f_10sec == true) { // calls every 10 seconds
         _f_10sec = false;
         if(_state == RADIO && !_icyBitRate && !_f_sleeping) {
