@@ -2636,19 +2636,17 @@ void loop() {
         //--------------------------------------AMBIENT LIGHT SENSOR BH1750---------------------------------------------------------------------------
         if(_f_BH1750_found){
             int32_t ambVal = BH1750.getBrightness();
-            if(ambVal <= 0) goto endbrightness;
             if(ambVal > 1500) ambVal = 1500;
-            _bh1750Value = map_l(ambVal, 0, 1500, 5, 100);
+            _bh1750Value = map_l(ambVal, 0, 1500, 0, 100);
         //    log_i("_bh1750Value %i, _brightness %i", _bh1750Value, _brightness);
             if(!_f_sleeping){
-                if(_bh1750Value >= _brightness) setTFTbrightness(_bh1750Value);
-                else setTFTbrightness(_brightness);
-            }
-endbrightness:
-            BH1750.start();
+                setTFTbrightness(_bh1750Value + _brightness);
+                if(_bh1750Value + _brightness > 100) setTFTbrightness(100);
+		txt_BR_value.writeText(int2str(_bh1750Value + _brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);
+		BH1750.start();
+			}
         }
     } //  END _f_1sec
-
 
     if(_f_10sec == true) { // calls every 10 seconds
         _f_10sec = false;
