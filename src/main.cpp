@@ -2920,11 +2920,11 @@ void ir_short_key(uint8_t key) {
     switch(key) {
         case 15:    // MODE
                     if(_state == SLEEP) {changeState(RADIO); break;} //  RADIO -> STATIONSLIST -> PLAYER -> DLNA -> CLOCK -> SLEEP
-                    if(_state == RADIO) {changeState(STATIONSLIST); setTimeCounter(40); break;}
-                    if(_state == STATIONSLIST) { _playerSubmenue = 0; changeState(PLAYER); break;}
+                    if(_state == RADIO) { _playerSubmenue = 0; changeState(PLAYER); break;}
                     if(_state == PLAYER) {changeState(DLNA); break;}
                     if(_state == DLNA) {changeState(CLOCK); break;}
-                    if(_state == CLOCK) {changeState(SLEEP); break;}
+					if(_state == CLOCK) {changeState(BRIGHTNESS); break;}
+					if(_state == BRIGHTNESS) {changeState(SLEEP); break;}
                     break;
         case 14:    // ARROW UP
                     if(_state == STATIONSLIST) {lst_RADIO.prevStation(); setTimeCounter(20); break;} // station--
@@ -2939,20 +2939,22 @@ void ir_short_key(uint8_t key) {
                     if(_state == RADIO) {nextFavStation(); break;} // NEXT STATION
                     if(_state == CLOCK) {nextFavStation(); changeState(RADIO); _f_switchToClock = true; break;}
                     if(_state == SLEEP) {display_sleeptime(1); break;}
+					if(_state == BRIGHTNESS) {_brightness=_brightness + 5; break;}
                     break;
         case 12:    // ARROW LEFT
                     if(_state == STATIONSLIST) {lst_RADIO.prevPage(); setTimeCounter(4); break;}  // prev page
                     if(_state == RADIO) {prevFavStation(); break;} // PREV STATION
                     if(_state == CLOCK) {prevFavStation(); changeState(RADIO); _f_switchToClock = true; break;}
                     if(_state == SLEEP) {display_sleeptime(-1); break;}
+					if(_state == BRIGHTNESS) {_brightness=_brightness - 5; break;}
                     break;
         case 10:    muteChanged(!_f_mute); // MUTE
                     break;
         case 16:    // OK
                     if(_state == STATIONSLIST) {changeState(RADIO); setStationByNumber(lst_RADIO.getSelectedStation()); break;}
-                    if(_state == RADIO) {break;}
+                    if(_state == RADIO) {changeState(STATIONSLIST); setTimeCounter(40); break;}
                     if(_state == SLEEP) {dispFooter.updateOffTime(_sleeptime); _radioSubmenue = 0; changeState(RADIO); break;}
-                    break;
+					if(_state == BRIGHTNESS) {txt_BR_value.setText(int2str(_brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER); break;}
         default:    break;
     }
 }
