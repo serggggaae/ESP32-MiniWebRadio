@@ -2954,7 +2954,7 @@ void ir_short_key(uint8_t key) {
                     if(_state == STATIONSLIST) {changeState(RADIO); setStationByNumber(lst_RADIO.getSelectedStation()); break;}
                     if(_state == RADIO) {changeState(STATIONSLIST); setTimeCounter(40); break;}
                     if(_state == SLEEP) {dispFooter.updateOffTime(_sleeptime); _radioSubmenue = 0; changeState(RADIO); break;}
-					if(_state == BRIGHTNESS) {txt_BR_value.setText(int2str(_brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER); break;}
+					if(_state == BRIGHTNESS) {changeState(RADIO); break;}
         default:    break;
     }
 }
