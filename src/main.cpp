@@ -2946,7 +2946,7 @@ void ir_short_key(uint8_t key) {
                     if(_state == CLOCK) {prevFavStation(); changeState(RADIO); _f_switchToClock = true; break;}
                     if(_state == SLEEP) {display_sleeptime(-1); break;}
 					if(_state == BRIGHTNESS) {_brightness=_brightness - 5;}
-                    if(_bh1750Value + _brightness < 5) {_brightness = 5; break;}
+                    if(_brightness < 5) {_brightness = 5; break;}
                     break;
         case 10:    muteChanged(!_f_mute); // MUTE
                     break;
