@@ -2937,14 +2937,16 @@ void ir_short_key(uint8_t key) {
                     if(_state == RADIO) {nextFavStation(); break;} // NEXT STATION
                     if(_state == CLOCK) {nextFavStation(); changeState(RADIO); _f_switchToClock = true; break;}
                     if(_state == SLEEP) {display_sleeptime(1); break;}
-					if(_state == BRIGHTNESS) {_brightness=_brightness + 5; break;}
+					if(_state == BRIGHTNESS) {_brightness=_brightness + 5;}
+                    if(_bh1750Value + _brightness > 100) {_brightness = 100; break;}
                     break;
         case 12:    // ARROW LEFT
                     if(_state == STATIONSLIST) {lst_RADIO.prevPage(); setTimeCounter(4); break;}  // prev page
                     if(_state == RADIO) {prevFavStation(); break;} // PREV STATION
                     if(_state == CLOCK) {prevFavStation(); changeState(RADIO); _f_switchToClock = true; break;}
                     if(_state == SLEEP) {display_sleeptime(-1); break;}
-					if(_state == BRIGHTNESS) {_brightness=_brightness - 5; break;}
+					if(_state == BRIGHTNESS) {_brightness=_brightness - 5;}
+                    if(_bh1750Value + _brightness < 5) {_brightness = 5; break;}
                     break;
         case 10:    muteChanged(!_f_mute); // MUTE
                     break;
@@ -2961,6 +2963,8 @@ void ir_short_key(uint8_t key) {
 			if(_state == STATIONSLIST) {_radioSubmenue = 0; changeState(RADIO);}
 			if(_state == SLEEP)        {_radioSubmenue = 0; changeState(RADIO);}
     }			
+					break;
+		case 19:    changeState(CLOCK);
 					break;
         default:    break;
     }
