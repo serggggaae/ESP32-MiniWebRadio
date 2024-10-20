@@ -2920,8 +2920,7 @@ void ir_short_key(uint8_t key) {
     switch(key) {
         case 15:    // MODE
                     if(_state == SLEEP) {changeState(RADIO); break;} //  RADIO -> STATIONSLIST -> PLAYER -> DLNA -> CLOCK -> SLEEP
-                    if(_state == RADIO) {changeState(CLOCK); break;}
-					if(_state == CLOCK) {changeState(BRIGHTNESS); break;}
+					if(_state == RADIO) {changeState(BRIGHTNESS); break;}
 					if(_state == BRIGHTNESS) {changeState(SLEEP); break;}
                     break;
         case 14:    // ARROW UP
