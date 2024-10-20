@@ -2955,6 +2955,13 @@ void ir_short_key(uint8_t key) {
 					if(_state == BRIGHTNESS) {changeState(RADIO); break;}
 					if(_state == CLOCK) {changeState(RADIO); break;}
 					break;
+		case 17:    fall_asleep(); // long mute	
+					break;
+		case 18:    { // cancel
+			if(_state == STATIONSLIST) {_radioSubmenue = 0; changeState(RADIO);}
+			if(_state == SLEEP)        {_radioSubmenue = 0; changeState(RADIO);}
+    }			
+					break;
         default:    break;
     }
 }
