@@ -2955,6 +2955,7 @@ void ir_short_key(uint8_t key) {
                     if(_state == RADIO) {changeState(STATIONSLIST); setTimeCounter(40); break;}
                     if(_state == SLEEP) {dispFooter.updateOffTime(_sleeptime); _radioSubmenue = 0; changeState(RADIO); break;}
 					if(_state == BRIGHTNESS) {changeState(RADIO); break;}
+					break;
         default:    break;
     }
 }
