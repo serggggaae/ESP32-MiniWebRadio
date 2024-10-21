@@ -2636,17 +2636,19 @@ void loop() {
         //--------------------------------------AMBIENT LIGHT SENSOR BH1750---------------------------------------------------------------------------
         if(_f_BH1750_found){
             int32_t ambVal = BH1750.getBrightness();
-		
             if(ambVal > 1500) ambVal = 1500;
             _bh1750Value = map_l(ambVal, 0, 1500, 0, 100);
         //    log_i("_bh1750Value %i, _brightness %i", _bh1750Value, _brightness);
             if(!_f_sleeping){
+				if(_bh1750Value + _brightness > 100) setTFTbrightness(100);
                 setTFTbrightness(_bh1750Value + _brightness);
-                if(_bh1750Value + _brightness > 100) setTFTbrightness(100);
-		txt_BR_value.writeText(int2str(_bh1750Value + _brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);
-		BH1750.start();
-			}
+                txt_BR_value.writeText(int2str(_bh1750Value + _brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);}
+          BH1750.start();
         }
+		else
+		if(!_f_sleeping){
+        setTFTbrightness(_brightness);
+		txt_BR_value.writeText(int2str(_brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);}
     } //  END _f_1sec
 
 
@@ -2919,9 +2921,8 @@ void ir_short_key(uint8_t key) {
 
     switch(key) {
         case 15:    // MODE
-                    if(_state == SLEEP) {changeState(RADIO); break;} //  RADIO -> STATIONSLIST -> PLAYER -> DLNA -> CLOCK -> SLEEP
-					if(_state == RADIO) {changeState(BRIGHTNESS); break;}
-					if(_state == BRIGHTNESS) {changeState(SLEEP); break;}
+                    if(_state == CLOCK) {changeState(RADIO); break;} //  RADIO -> STATIONSLIST -> PLAYER -> DLNA -> CLOCK -> SLEEP
+					if(_state == RADIO) {changeState(CLOCK); break;}
                     break;
         case 14:    // ARROW UP
                     if(_state == STATIONSLIST) {lst_RADIO.prevStation(); setTimeCounter(20); break;} // station--
@@ -2937,7 +2938,7 @@ void ir_short_key(uint8_t key) {
                     if(_state == CLOCK) {nextFavStation(); changeState(RADIO); _f_switchToClock = true; break;}
                     if(_state == SLEEP) {display_sleeptime(1); break;}
 					if(_state == BRIGHTNESS) {_brightness=_brightness + 5;}
-                    if(_bh1750Value + _brightness > 100) {_brightness = 100; break;}
+                    if(_brightness > 100) {_brightness = 100; break;}
                     break;
         case 12:    // ARROW LEFT
                     if(_state == STATIONSLIST) {lst_RADIO.prevPage(); setTimeCounter(4); break;}  // prev page
@@ -2956,14 +2957,11 @@ void ir_short_key(uint8_t key) {
 					if(_state == BRIGHTNESS) {changeState(RADIO); break;}
 					if(_state == CLOCK) {changeState(RADIO); break;}
 					break;
-		case 17:    fall_asleep(); // long mute	
+		case 17:    changeState(CLOCK);
 					break;
-		case 18:    { // cancel
-			if(_state == STATIONSLIST) {_radioSubmenue = 0; changeState(RADIO);}
-			if(_state == SLEEP)        {_radioSubmenue = 0; changeState(RADIO);}
-    }			
+		case 18:    changeState(SLEEP);
 					break;
-		case 19:    changeState(CLOCK);
+		case 19:    {_radioSubmenue ++; changeState(RADIO);}
 					break;
         default:    break;
     }
@@ -2971,10 +2969,8 @@ void ir_short_key(uint8_t key) {
 void ir_long_key(int8_t key) {
     SerialPrintfln("ir_code: ..  " ANSI_ESC_YELLOW "long pressed key nr: " ANSI_ESC_BLUE "%02i", key);
     if(key == 20) fall_asleep(); // long mute
-    if(key == 21){ // cancel
-        if(_state == STATIONSLIST) {_radioSubmenue = 0; changeState(RADIO);}
-        if(_state == SLEEP)        {_radioSubmenue = 0; changeState(RADIO);}
-    }
+	if(key == 21) {_radioSubmenue = 0; changeState(RADIO);} 
+	if(key == 22) changeState(BRIGHTNESS);
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 // Event from TouchPad
