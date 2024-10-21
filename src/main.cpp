@@ -2642,9 +2642,10 @@ void loop() {
             if(!_f_sleeping){
 				setTFTbrightness(_bh1750Value + _brightness);
 				if(_bh1750Value + _brightness > 100) setTFTbrightness(100);
-                txt_BR_value.writeText(int2str(_bh1750Value + _brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);}
+                txt_BR_value.writeText(int2str(_bh1750Value + _brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);
           BH1750.start();
         }
+		}
 		else
 		if(!_f_sleeping){
         setTFTbrightness(_brightness);
