@@ -4,7 +4,7 @@
     MiniWebRadio -- Webradio receiver for ESP32
 
     first release on 03/2017                                                                                                      */String Version ="\
-    Version 3.5j - Oct 22/2024                                                                                                                       ";
+    Version 3.5k - Oct 23/2024                                                                                                                       ";
 
 /*  2.8" color display (320x240px) with controller ILI9341 or HX8347D (SPI) or
     3.5" color display (480x320px) with controller ILI9486 or ILI9488 (SPI)
@@ -2652,17 +2652,19 @@ void loop() {
             if(ambVal > 1500) ambVal = 1500;
             _bh1750Value = map_l(ambVal, 0, 1500, 0, 100);
         //    log_i("_bh1750Value %i, _brightness %i", _bh1750Value, _brightness);
-            if(!_f_sleeping){
+        if(!_f_sleeping){
 				setTFTbrightness(_bh1750Value + _brightness);
 				if(_bh1750Value + _brightness > 100) setTFTbrightness(100);
                 txt_BR_value.writeText(int2str(_bh1750Value + _brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);
+				sdr_BR_value.setValue(_bh1750Value + _brightness);
           BH1750.start();
         }
 		}
 		else
 		if(!_f_sleeping){
-        setTFTbrightness(_brightness);
-		txt_BR_value.writeText(int2str(_brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);}
+				setTFTbrightness(_brightness);
+				txt_BR_value.writeText(int2str(_brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);}
+				sdr_BR_value.setValue(_brightness);
     } //  END _f_1sec
 
 
@@ -2732,14 +2734,14 @@ void loop() {
             log_w("st: %s", _streamTitle);
             _f_newStreamTitle = true;
         }
-        if(r.startsWith("ais")){ // openAIspeech
-            log_w("openAI speech");
-            audioOpenAIspeech("openAI_key", "Today is a wonderful day to build something people love!");
-        }
-        if(r.startsWith("ctfs")){ // connecttoFS
-            log_w("SPIFFS");
-            connecttoFS("SPIFFS", "/Collide.ogg");
-        }
+        // if(r.startsWith("ais")){ // openAIspeech
+        //     log_w("openAI speech");
+        //     audioOpenAIspeech("openAI_key", "Today is a wonderful day to build something people love!");
+        // }
+        // if(r.startsWith("ctfs")){ // connecttoFS
+        //     log_w("SPIFFS");
+        //     connecttoFS("SPIFFS", "/Collide.ogg");
+        // }
         if(r.startsWith("grn")){ // lost of all self registered objects
             get_registered_names();
         }
@@ -2748,6 +2750,13 @@ void loop() {
             f_mono = !f_mono;
             audioForceMono(f_mono);
             f_mono? log_w("mono"): log_w("stereo");
+        }
+        if(r.startsWith("btp")){ // bluetooth RX/TX protocol
+            uint16_t i = 0;
+            while(bt_emitter.list_protokol(i)){
+                log_e("%s", bt_emitter.list_protokol(i));
+                i++;
+            }
         }
     }
 }
