@@ -2653,15 +2653,13 @@ void loop() {
             _bh1750Value = map_l(ambVal, 0, 1000, 0, 100);
         //    log_i("_bh1750Value %i, _brightness %i", _bh1750Value, _brightness);
         if(!_f_sleeping){
-			if(_bh1750Value >= _brightness) {setTFTbrightness(_bh1750Value);
-			txt_BR_value.writeText(int2str(_bh1750Value + _brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);}
-                else {setTFTbrightness(_brightness);
-				sdr_BR_value.setValue(_brightness);}
+			if(_bh1750Value >= _brightness) setTFTbrightness(_bh1750Value);
+                else setTFTbrightness(_brightness);
 				BH1750.start();
         }
 		}
 		else
-		if(!_f_sleeping) sdr_BR_value.setValue(_brightness);
+		if(!_f_sleeping) setTFTbrightness(_brightness);
     } //  END _f_1sec
 
 
@@ -2960,7 +2958,7 @@ void ir_short_key(uint8_t key) {
                     if(_state == RADIO) {nextFavStation(); break;} // NEXT STATION
                     if(_state == CLOCK) {nextFavStation(); changeState(RADIO); _f_switchToClock = true; break;}
                     if(_state == SLEEPTIMER) {display_sleeptime(1); break;}
-					if(_state == BRIGHTNESS) {_brightness=_brightness + 5;}
+					if(_state == BRIGHTNESS) {_brightness=_brightness + 5; sdr_BR_value.setValue(_brightness);}
                     if(_brightness > 100) {_brightness = 100; break;}
                     break;
         case 12:    // ARROW LEFT
@@ -2968,7 +2966,7 @@ void ir_short_key(uint8_t key) {
                     if(_state == RADIO) {prevFavStation(); break;} // PREV STATION
                     if(_state == CLOCK) {prevFavStation(); changeState(RADIO); _f_switchToClock = true; break;}
                     if(_state == SLEEPTIMER) {display_sleeptime(-1); break;}
-					if(_state == BRIGHTNESS) {_brightness=_brightness - 5;}
+					if(_state == BRIGHTNESS) {_brightness=_brightness - 5; sdr_BR_value.setValue(_brightness);}
                     if(_brightness < 5) {_brightness = 5; break;}
                     break;
         case 10:    muteChanged(!_f_mute); // MUTE
