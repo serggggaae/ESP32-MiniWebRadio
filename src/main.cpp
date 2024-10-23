@@ -2659,7 +2659,8 @@ void loop() {
         }
 		}
 		else
-		if(!_f_sleeping) setTFTbrightness(_brightness);
+		if(!_f_sleeping) {_bh1750Value = 0;
+		setTFTbrightness(_brightness);}
     } //  END _f_1sec
 
 
