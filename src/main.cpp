@@ -1737,7 +1737,7 @@ void savefile(const char* fileName, uint32_t contentLength) { // save the upload
         if(!startsWith(fileName, "/")) strcat(fn, "/");
         strcat(fn, fileName);
         if(webSrv.uploadB64image(SD_MMC, fn, contentLength)) {
-            SerialPrintfln("save image " ANSI_ESC_CYAN "%s" ANSI_ESC_WHITE " to SD card was successfully", fn);
+            SerialPrintfln("save image (jpg) " ANSI_ESC_CYAN "%s" ANSI_ESC_WHITE " to SD card was successfully", fn);
             webSrv.sendStatus(200);
         }
         else webSrv.sendStatus(400);
@@ -2955,7 +2955,7 @@ void ir_short_key(uint8_t key) {
                     if(_state == PLAYER) {txt_PL_fName.hide();   volBox.enable(); volBox.setNumbers(_cur_volume); volBox.show(); setTimeCounter(2); break;}
                     break;
         case 11:    // ARROW RIGHT
-                    if(_state == STATIONSLIST) {lst_RADIO.nextPage(); setTimeCounter(4); break;}  // next page
+                    if(_state == STATIONSLIST) {lst_RADIO.nextPage(); setTimeCounter(20); break;}  // next page
                     if(_state == RADIO) {nextFavStation(); break;} // NEXT STATION
                     if(_state == CLOCK) {nextFavStation(); changeState(RADIO); _f_switchToClock = true; break;}
                     if(_state == SLEEPTIMER) {display_sleeptime(1); break;}
@@ -2963,7 +2963,7 @@ void ir_short_key(uint8_t key) {
 					if(_brightness > 100) {_brightness = 100; break;}
                     break;
         case 12:    // ARROW LEFT
-                    if(_state == STATIONSLIST) {lst_RADIO.prevPage(); setTimeCounter(4); break;}  // prev page
+                    if(_state == STATIONSLIST) {lst_RADIO.prevPage(); setTimeCounter(20); break;}  // prev page
                     if(_state == RADIO) {prevFavStation(); break;} // PREV STATION
                     if(_state == CLOCK) {prevFavStation(); changeState(RADIO); _f_switchToClock = true; break;}
                     if(_state == SLEEPTIMER) {display_sleeptime(-1); break;}
@@ -2974,7 +2974,7 @@ void ir_short_key(uint8_t key) {
                     break;
         case 16:    // OK
                     if(_state == STATIONSLIST) {changeState(RADIO); setStationByNumber(lst_RADIO.getSelectedStation()); break;}
-                    if(_state == RADIO) {changeState(STATIONSLIST); setTimeCounter(40); break;}
+                    if(_state == RADIO) {changeState(STATIONSLIST); setTimeCounter(20); break;}
                     if(_state == SLEEPTIMER) {dispFooter.updateOffTime(_sleeptime); _radioSubmenue = 0; changeState(RADIO); break;}
 					if(_state == BRIGHTNESS) {changeState(RADIO); break;}
 					if(_state == CLOCK) {changeState(RADIO); break;}
@@ -3330,108 +3330,89 @@ void WEBSRV_onCommand(const String cmd, const String param, const String arg){  
                                     processPlaylist(true);
                                     return;}
 
-    if(cmd == "SD_rename"){         SerialPrintfln("webSrv: ...  " ANSI_ESC_YELLOW "Rename " ANSI_ESC_ORANGE "old \"%s\" new \"%s\"",                 // via XMLHttpRequest
-                                    param.c_str(), arg.c_str());
-                                    bool res = SD_rename(param.c_str(), arg.c_str());
+    if(cmd == "SD_rename"){         String arg1 = arg.substring(0, arg.indexOf("&")); // only the first argument is used
+                                    SerialPrintfln("webSrv: ...  " ANSI_ESC_YELLOW "Rename " ANSI_ESC_ORANGE "old \"%s\" new \"%s\"",                 // via XMLHttpRequest
+                                    param.c_str(), arg1.c_str());
+                                    bool res = SD_rename(param.c_str(), arg1.c_str());
                                     if(res) webSrv.reply("refresh", webSrv.TEXT);
                                     else webSrv.sendStatus(400);
                                     return;}
 
-    if(cmd == "SD_delete"){         bool res = SD_delete(param.c_str());
-                                    if(res) webSrv.sendStatus(200); else webSrv.sendStatus(400);
-                                    SerialPrintfln("webSrv: ...  " ANSI_ESC_YELLOW "Delete " ANSI_ESC_ORANGE "\"%s\"", param.c_str());                // via XMLHttpRequest
+    if(cmd == "setIRcmd"){          int32_t command = (int32_t)strtol(param.c_str(), NULL, 16);
+                                    int32_t btnNr = (int32_t)strtol(arg.c_str(), NULL, 10);
+                                    SerialPrintfln("set_IR_cmd:  " ANSI_ESC_YELLOW "IR command " ANSI_ESC_BLUE "0x%02lx, "
+                                    ANSI_ESC_YELLOW "IR Button Number " ANSI_ESC_BLUE "%02li", (long signed)command, (long signed)btnNr);
+                                    ir.set_irButtons(btnNr,  command);
+                                    return;}
+    if(cmd == "setIRadr"){          SerialPrintfln("set_IR_adr:  " ANSI_ESC_YELLOW "IR address " ANSI_ESC_BLUE "%s",
+                                    param.c_str());
+                                    int32_t address = (int32_t)strtol(param.c_str(), NULL, 16);
+                                    ir.set_irAddress(address);
                                     return;}
 
-    if(cmd == "SD_Upload"){        _filename = param;
-                                   _f_SD_Upload = true;
-                                   SerialPrintfln("webSrv: ...  " ANSI_ESC_YELLOW "Upload  " ANSI_ESC_ORANGE "\"%s\"", param.c_str());
-                                   return;}
+    if(cmd == "getTimeFormat"){     webSrv.send("timeFormat=", String(_timeFormat, 10));
+                                    return;}
 
-    if(cmd == "setIRcmd"){         int32_t command = (int32_t)strtol(param.c_str(), NULL, 16);
-                                   int32_t btnNr = (int32_t)strtol(arg.c_str(), NULL, 10);
-                                   SerialPrintfln("set_IR_cmd:  " ANSI_ESC_YELLOW "IR command " ANSI_ESC_BLUE "0x%02lx, "
-                                   ANSI_ESC_YELLOW "IR Button Number " ANSI_ESC_BLUE "0x%02lx", (long signed)command, (long signed)btnNr);
-                                   ir.set_irButtons(btnNr,  command);
-                                   return;}
-    if(cmd == "setIRadr"){         SerialPrintfln("set_IR_adr:  " ANSI_ESC_YELLOW "IR address " ANSI_ESC_BLUE "%s",
-                                   param.c_str());
-                                   int32_t address = (int32_t)strtol(param.c_str(), NULL, 16);
-                                   ir.set_irAddress(address);
-                                   return;}
+    if(cmd == "setTimeFormat"){     _timeFormat = param.toInt();
+                                    clk_CL_green.setTimeFormat(_timeFormat);
+                                    if(_state == CLOCK){
+                                         clearWithOutHeaderFooter();
+                                    }
+                                    SerialPrintfln("TimeFormat:  " ANSI_ESC_YELLOW "new time format: " ANSI_ESC_BLUE "%sh", param.c_str());
+                                    return;}
 
-    if(cmd == "getTimeFormat"){    webSrv.send("timeFormat=", String(_timeFormat, 10));
-                                   return;}
+    if(cmd == "getSleepMode"){      webSrv.send("sleepMode=", String(_sleepMode, 10));
+                                    return;}
 
-    if(cmd == "setTimeFormat"){    _timeFormat = param.toInt();
-                                   clk_CL_green.setTimeFormat(_timeFormat);
-                                   if(_state == CLOCK){
-                                        clearWithOutHeaderFooter();
-                                   }
-                                   SerialPrintfln("TimeFormat:  " ANSI_ESC_YELLOW "new time format: " ANSI_ESC_BLUE "%sh", param.c_str());
-                                   return;}
+    if(cmd == "setSleepMode"){      _sleepMode = param.toInt();
+                                    if(_sleepMode == 0) SerialPrintfln("SleepMode:   " ANSI_ESC_YELLOW "Display off");
+                                    if(_sleepMode == 1) SerialPrintfln("SleepMode:   " ANSI_ESC_YELLOW "Show the time");
+                                    return;}
 
-    if(cmd == "getSleepMode"){     webSrv.send("sleepMode=", String(_sleepMode, 10));
-                                   return;}
-
-    if(cmd == "setSleepMode"){     _sleepMode = param.toInt();
-                                   if(_sleepMode == 0) SerialPrintfln("SleepMode:   " ANSI_ESC_YELLOW "Display off");
-                                   if(_sleepMode == 1) SerialPrintfln("SleepMode:   " ANSI_ESC_YELLOW "Show the time");
-                                   return;}
-
-    if(cmd == "DLNA_GetFolder"){   webSrv.sendStatus(306); return;}  // todo
-    if(cmd == "KCX_BT_connected") {if     (!_f_BTpower)              webSrv.send("KCX_BT_connected=", "-1");
-                                   else if(bt_emitter.isConnected()) webSrv.send("KCX_BT_connected=",  "1");
-                                   else                              webSrv.send("KCX_BT_connected=",  "0");
-                                   return;}
-    if(cmd == "KCX_BT_clearItems"){bt_emitter.deleteVMlinks(); return;}
-    if(cmd == "KCX_BT_addName"){   bt_emitter.addLinkName(param.c_str()); return;}
-    if(cmd == "KCX_BT_addAddr"){   bt_emitter.addLinkAddr(param.c_str()); return;}
-    if(cmd == "KCX_BT_mem"){       bt_emitter.getVMlinks(); return;}
-    if(cmd == "KCX_BT_scanned"){   webSrv.send("KCX_BT_SCANNED=", bt_emitter.stringifyScannedItems()); return;}
-    if(cmd == "KCX_BT_getMode"){   webSrv.send("KCX_BT_MODE=", bt_emitter.getMode()); return;}
-    if(cmd == "KCX_BT_changeMode"){bt_emitter.changeMode(); return;}
-    if(cmd == "KCX_BT_pause"){     bt_emitter.pauseResume(); return;}
-    if(cmd == "KCX_BT_downvolume"){if(_BTvolume > 0)  {_BTvolume--; bt_emitter.downvolume();} return;}
-    if(cmd == "KCX_BT_upvolume")  {if(_BTvolume < 31) {_BTvolume++; bt_emitter.upvolume();}   return;}
-    if(cmd == "KCX_BT_getPower")  {if(_f_BTpower) webSrv.send("KCX_BT_power=", "1"); else webSrv.send("KCX_BT_power=", "0"); return;}
-    if(cmd == "KCX_BT_power")     {_f_BTpower = !_f_BTcurPowerState; BTpowerChanged(!_f_BTcurPowerState); return;}
+    if(cmd == "DLNA_GetFolder"){    webSrv.sendStatus(306); return;}  // todo
+    if(cmd == "KCX_BT_connected") { if     (!_f_BTpower)              webSrv.send("KCX_BT_connected=", "-1");
+                                    else if(bt_emitter.isConnected()) webSrv.send("KCX_BT_connected=",  "1");
+                                    else                              webSrv.send("KCX_BT_connected=",  "0");
+                                    return;}
+    if(cmd == "KCX_BT_clearItems"){ bt_emitter.deleteVMlinks(); return;}
+    if(cmd == "KCX_BT_addName"){    bt_emitter.addLinkName(param.c_str()); return;}
+    if(cmd == "KCX_BT_addAddr"){    bt_emitter.addLinkAddr(param.c_str()); return;}
+    if(cmd == "KCX_BT_mem"){        bt_emitter.getVMlinks(); return;}
+    if(cmd == "KCX_BT_scanned"){    webSrv.send("KCX_BT_SCANNED=", bt_emitter.stringifyScannedItems()); return;}
+    if(cmd == "KCX_BT_getMode"){    webSrv.send("KCX_BT_MODE=", bt_emitter.getMode()); return;}
+    if(cmd == "KCX_BT_changeMode"){ bt_emitter.changeMode(); return;}
+    if(cmd == "KCX_BT_pause"){      bt_emitter.pauseResume(); return;}
+    if(cmd == "KCX_BT_downvolume"){ if(_BTvolume > 0)  {_BTvolume--; bt_emitter.downvolume();} return;}
+    if(cmd == "KCX_BT_upvolume")  { if(_BTvolume < 31) {_BTvolume++; bt_emitter.upvolume();}   return;}
+    if(cmd == "KCX_BT_getPower")  { if(_f_BTpower) webSrv.send("KCX_BT_power=", "1"); else webSrv.send("KCX_BT_power=", "0"); return;}
+    if(cmd == "KCX_BT_power")     { _f_BTpower = !_f_BTcurPowerState; BTpowerChanged(!_f_BTcurPowerState); return;}
 
     if(cmd == "hardcopy") {SerialPrintfln("Webpage: ... " ANSI_ESC_YELLOW "create a display hardcopy"); hardcopy(); webSrv.send("hardcopy=", "/hardcopy.bmp"); return;}
 
     SerialPrintfln(ANSI_ESC_RED "unknown HTMLcommand %s, param=%s", cmd.c_str(), param.c_str());
     webSrv.sendStatus(400);
 }
-// clang-format on
-void WEBSRV_onRequest(const String request, uint32_t contentLength, uint32_t bytesLeft) {
-    if(true) { SerialPrintfln("WS_onReq:    " ANSI_ESC_YELLOW "%s contentLength %lu", request.c_str(), (long unsigned)contentLength); }
 
-    if(_filename.startsWith("SD/")) {// POST request
-        File sta;
-        if(_f_SD_Upload){
-            _f_SD_Upload = false;
-            sta = SD_MMC.open(_filename.substring(2).c_str(),"w",true);
-        }
-        else{
-            sta = SD_MMC.open(_filename.substring(2).c_str(),"a",true);
-        }
-        sta.write((uint8_t*)request.c_str(), request.length() );
-        sta.close();
-        if(bytesLeft == 0){
-            if(_filename  == "SD/stations.json") _f_stationsChanged = true;
-            webSrv.reply("200", webSrv.TEXT);
-        }
-        return;
-    }
-    if(request.startsWith("------")) return;     // uninteresting WebKitFormBoundaryString
-    if(request.indexOf("form-data") > 0) return; // uninteresting Info
-    if(request == "fileUpload") {
-        savefile(_filename.c_str(), bytesLeft);
-        return;
-    }
-    if(request.startsWith("Content")) return; // suppress Content-Disposition and Content-Type
-
-    SerialPrintfln(ANSI_ESC_RED "unknown request: %s", request.c_str());
+void WEBSRV_onRequest(const char* cmd,  const char* param, const char* arg, const char* contentType, uint32_t contentLength){
+    // log_w("cmd %s, param %s, arg %s, ct %s, cl %i", cmd, param, arg, contentType, contentLength);
+    if(strcmp(cmd, "SD_Upload") == 0) {savefile(param, contentLength);
+                                       if(strcmp(param, "/stations.json") == 0) staMgnt.updateStationsList();
+                                       return;}
+    if(strcmp(cmd, "uploadfile") == 0){savefile(param, contentLength); return;}
+    SerialPrintfln(ANSI_ESC_RED "unknown HTMLcommand %s, param=%s", cmd, param);
+    webSrv.sendStatus(400);
 }
+
+void WEBSRV_onDelete(const char* cmd,  const char* param, const char* arg){  // via XMLHttpRequest
+    if(startsWith(cmd, "SD")){      bool res = SD_delete(param);
+                                    if(res) webSrv.sendStatus(200); else webSrv.sendStatus(400);
+                                    SerialPrintfln("webSrv: ...  " ANSI_ESC_YELLOW "Delete " ANSI_ESC_ORANGE "\"%s\"", param);
+                                    return;}
+    SerialPrintfln(ANSI_ESC_RED "unknown HTMLcommand %s, param=%s", cmd, param);
+    webSrv.sendStatus(400);
+}
+// clang-format on
+
 void WEBSRV_onInfo(const char* info) {
     if(startsWith(info, "WebSocket")) return;      // suppress WebSocket client available
     if(!strcmp("ping", info)) return;              // suppress ping
