@@ -3008,6 +3008,7 @@ void ir_long_key(int8_t key) {
 				  if(_state == STATIONSLIST) {_radioSubmenue = 0; changeState(RADIO);}
 				  if(_state == SLEEPTIMER) {_radioSubmenue = 0; changeState(RADIO);}
 				  if(_state == AUDIOFILESLIST) {_playerSubmenue = 0; stopSong(); changeState(PLAYER);}
+				  if(_state == RADIO) {stopSong();}
 	if(key == 22) changeState(BRIGHTNESS);
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------
