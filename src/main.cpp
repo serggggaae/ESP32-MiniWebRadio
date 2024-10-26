@@ -2993,7 +2993,7 @@ void ir_short_key(uint8_t key) {
 					if(_state == PLAYER) {_SD_content.listDir(_cur_AudioFolder, true, false);_playerSubmenue = 1; changeState(AUDIOFILESLIST); setTimeCounter(20); break;}
 					if(_state == AUDIOFILESLIST) { _playerSubmenue = 0; changeState(PLAYER); break;}
 					break;
-		case 18:    // OFF TIMER
+		case 18:    // SLEEP TIMER
 					if(_state == SLEEPTIMER) {_radioSubmenue = 0; changeState(RADIO); break;}
 					changeState(SLEEPTIMER);
 					break;

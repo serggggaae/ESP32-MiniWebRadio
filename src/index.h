@@ -2918,7 +2918,7 @@ function clear_BT_memItems(){
             <td class="table_cell1"> EIGHT </td>
             <td> 18 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_18" onclick="IRclick(18)" onkeyup="chIRcmd(18)" onchange="IRupdateJSON(18)"></td>
-            <td class="table_cell2"> OFF TIMER </td>
+            <td class="table_cell2"> SLEEP TIMER </td>
             <td></td>
             <td></td>
             <td></td>
