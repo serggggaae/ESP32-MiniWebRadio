@@ -2652,8 +2652,8 @@ void loop() {
             if(ambVal > 1000) ambVal = 1000;
             _bh1750Value = map_l(ambVal, 0, 1000, 0, 100);
         //    log_i("_bh1750Value %i, _brightness %i", _bh1750Value, _brightness);
-        if(!_f_sleeping){
-			if(_bh1750Value >= _brightness) setTFTbrightness(_bh1750Value);
+            if(!_f_sleeping){
+                if(_bh1750Value >= _brightness) setTFTbrightness(_bh1750Value);
                 else setTFTbrightness(_brightness);
 				BH1750.start();
         }
@@ -2939,8 +2939,9 @@ void ir_short_key(uint8_t key) {
 
     switch(key) {
         case 15:    // MODE
-                    if(_state == CLOCK) {changeState(RADIO); break;} //  RADIO -> STATIONSLIST -> PLAYER -> DLNA -> CLOCK -> SLEEPTIMER
-					if(_state == RADIO) {changeState(CLOCK); break;}
+                    if(_state == PLAYER) {changeState(RADIO); break;} //  RADIO -> STATIONSLIST -> PLAYER -> DLNA -> CLOCK -> SLEEPTIMER
+					if(_state == CLOCK) { changeState(RADIO); break;}
+					if(_state == RADIO) { _playerSubmenue = 0; changeState(PLAYER); break;}
                     break;
         case 14:    // ARROW UP
                     if(_state == STATIONSLIST) {lst_RADIO.prevStation(); setTimeCounter(20); break;} // station--
@@ -2961,7 +2962,9 @@ void ir_short_key(uint8_t key) {
                     if(_state == SLEEPTIMER) {display_sleeptime(1); break;}
 					if(_state == BRIGHTNESS) {_brightness=_brightness + 5; sdr_BR_value.setValue(_brightness); txt_BR_value.writeText(int2str(_bh1750Value + _brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);}
 					if(_brightness > 100) {_brightness = 100; break;}
-                    break;
+					if(_state == PLAYER) {if(_cur_AudioFileNr + 1 < _SD_content.getSize()) {_cur_AudioFileNr++; showFileName(_SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); showAudioFileNumber(); SD_playFile(_cur_AudioFolder, _SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); _playerSubmenue = 1; changeState(PLAYER); showAudioFileNumber();} break;}
+                    if(_state == AUDIOFILESLIST) {_cur_AudioFileNr = _SD_content.getNextAudioFile(_cur_AudioFileNr); break;}
+					break;
         case 12:    // ARROW LEFT
                     if(_state == STATIONSLIST) {lst_RADIO.prevPage(); setTimeCounter(20); break;}  // prev page
                     if(_state == RADIO) {prevFavStation(); break;} // PREV STATION
@@ -2969,7 +2972,9 @@ void ir_short_key(uint8_t key) {
                     if(_state == SLEEPTIMER) {display_sleeptime(-1); break;}
 					if(_state == BRIGHTNESS) {_brightness=_brightness - 5; sdr_BR_value.setValue(_brightness); txt_BR_value.writeText(int2str(_bh1750Value + _brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);}
                     if(_brightness < 5) {_brightness = 5; break;}
-                    break;
+					if(_state == PLAYER) {if(_cur_AudioFileNr > 0) {_cur_AudioFileNr--; showFileName(_SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); showAudioFileNumber(); SD_playFile(_cur_AudioFolder, _SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); _playerSubmenue = 1; changeState(PLAYER); showAudioFileNumber();} break;}
+					if(_state == AUDIOFILESLIST) {_cur_AudioFileNr = _SD_content.getPrevAudioFile(_cur_AudioFileNr); break;}
+					break;
         case 10:    muteChanged(!_f_mute); // MUTE
                     break;
         case 16:    // OK
@@ -2978,20 +2983,31 @@ void ir_short_key(uint8_t key) {
                     if(_state == SLEEPTIMER) {dispFooter.updateOffTime(_sleeptime); _radioSubmenue = 0; changeState(RADIO); break;}
 					if(_state == BRIGHTNESS) {changeState(RADIO); break;}
 					if(_state == CLOCK) {changeState(RADIO); break;}
+					if(_state == PLAYER) { _f_shuffle = true; preparePlaylistFromSDFolder(_cur_AudioFolder); processPlaylist(true); _playerSubmenue = 1; changeState(PLAYER); break;}
+					if(_state == AUDIOFILESLIST) { _f_shuffle = false; preparePlaylistFromSDFolder(_cur_AudioFolder); processPlaylist(true); _playerSubmenue = 1; changeState(PLAYER); break;}
 					break;
-		case 17:    changeState(CLOCK);
+		case 17:    if(_state == RADIO) {changeState(CLOCK); break;}
+					if(_state == CLOCK) {changeState(RADIO); break;}
+					if(_state == PLAYER) {_SD_content.listDir(_cur_AudioFolder, true, false);_playerSubmenue = 1; changeState(AUDIOFILESLIST); setTimeCounter(20); break;}
+					if(_state == AUDIOFILESLIST) { _playerSubmenue = 0; changeState(PLAYER); break;}
 					break;
-		case 18:    changeState(SLEEPTIMER);
+		case 18:    if(_state == SLEEPTIMER) {_radioSubmenue = 0; changeState(RADIO); break;}
+					changeState(SLEEPTIMER);
 					break;
-		case 19:    {_radioSubmenue ++; changeState(RADIO);}
+		case 19:    _radioSubmenue++;
+					if(_radioSubmenue == 3) _radioSubmenue = 0; 
+					changeState(RADIO);
 					break;
-        default:    break;
+			default:    break;
     }
 }
 void ir_long_key(int8_t key) {
     SerialPrintfln("ir_code: ..  " ANSI_ESC_YELLOW "long pressed key nr: " ANSI_ESC_BLUE "%02i", key);
     if(key == 20) fall_asleep(); // long mute
-	if(key == 21) {_radioSubmenue = 0; changeState(RADIO);} 
+	if(key == 21) if(_state == PLAYER) {_playerSubmenue = 0; stopSong(); changeState(PLAYER);}
+				  if(_state == STATIONSLIST) {_radioSubmenue = 0; changeState(RADIO);}
+				  if(_state == SLEEPTIMER) {_radioSubmenue = 0; changeState(RADIO);}
+				  if(_state == AUDIOFILESLIST) {_playerSubmenue = 0; stopSong(); changeState(PLAYER);}
 	if(key == 22) changeState(BRIGHTNESS);
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------
