@@ -2975,7 +2975,8 @@ void ir_short_key(uint8_t key) {
 					if(_state == PLAYER) {if(_cur_AudioFileNr > 0) {_cur_AudioFileNr--; showFileName(_SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); showAudioFileNumber(); SD_playFile(_cur_AudioFolder, _SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); _playerSubmenue = 1; changeState(PLAYER); showAudioFileNumber();} break;}
 					if(_state == AUDIOFILESLIST) {_cur_AudioFileNr = _SD_content.getPrevAudioFile(_cur_AudioFileNr); break;}
 					break;
-        case 10:    muteChanged(!_f_mute); // MUTE
+        case 10:    // MUTE
+					muteChanged(!_f_mute);
                     break;
         case 16:    // OK
                     if(_state == STATIONSLIST) {changeState(RADIO); setStationByNumber(lst_RADIO.getSelectedStation()); break;}
@@ -2986,15 +2987,18 @@ void ir_short_key(uint8_t key) {
 					if(_state == PLAYER) { _f_shuffle = true; preparePlaylistFromSDFolder(_cur_AudioFolder); processPlaylist(true); _playerSubmenue = 1; changeState(PLAYER); break;}
 					if(_state == AUDIOFILESLIST) { _f_shuffle = false; preparePlaylistFromSDFolder(_cur_AudioFolder); processPlaylist(true); _playerSubmenue = 1; changeState(PLAYER); break;}
 					break;
-		case 17:    if(_state == RADIO) {changeState(CLOCK); break;}
+		case 17:    // CLOCK
+					if(_state == RADIO) {changeState(CLOCK); break;}
 					if(_state == CLOCK) {changeState(RADIO); break;}
 					if(_state == PLAYER) {_SD_content.listDir(_cur_AudioFolder, true, false);_playerSubmenue = 1; changeState(AUDIOFILESLIST); setTimeCounter(20); break;}
 					if(_state == AUDIOFILESLIST) { _playerSubmenue = 0; changeState(PLAYER); break;}
 					break;
-		case 18:    if(_state == SLEEPTIMER) {_radioSubmenue = 0; changeState(RADIO); break;}
+		case 18:    // OFF TIMER
+					if(_state == SLEEPTIMER) {_radioSubmenue = 0; changeState(RADIO); break;}
 					changeState(SLEEPTIMER);
 					break;
-		case 19:    _radioSubmenue++;
+		case 19:    // CHANGE STATE
+					_radioSubmenue++;
 					if(_radioSubmenue == 3) _radioSubmenue = 0; 
 					changeState(RADIO);
 					break;
@@ -3003,13 +3007,16 @@ void ir_short_key(uint8_t key) {
 }
 void ir_long_key(int8_t key) {
     SerialPrintfln("ir_code: ..  " ANSI_ESC_YELLOW "long pressed key nr: " ANSI_ESC_BLUE "%02i", key);
-    if(key == 20) fall_asleep(); // long mute
-	if(key == 21) if(_state == PLAYER) {_playerSubmenue = 0; stopSong(); changeState(PLAYER);}
+    if(key == 20) // LONG SLEEP
+				  fall_asleep();
+	if(key == 21) // LONG CANCEL
+				  if(_state == PLAYER) {_playerSubmenue = 0; stopSong(); changeState(PLAYER);}
 				  if(_state == STATIONSLIST) {_radioSubmenue = 0; changeState(RADIO);}
 				  if(_state == SLEEPTIMER) {_radioSubmenue = 0; changeState(RADIO);}
 				  if(_state == AUDIOFILESLIST) {_playerSubmenue = 0; stopSong(); changeState(PLAYER);}
 				  if(_state == RADIO) {stopSong();}
-	if(key == 22) changeState(BRIGHTNESS);
+	if(key == 22) // LONG BRIGHTNESS
+				  changeState(BRIGHTNESS);
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 // Event from TouchPad
