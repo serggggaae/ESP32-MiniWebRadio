@@ -2941,7 +2941,7 @@ void ir_short_key(uint8_t key) {
         case 15:    // MODE
                     if(_state == PLAYER) {_radioSubmenue = 0; changeState(RADIO); break;} //  RADIO -> STATIONSLIST -> PLAYER -> DLNA -> CLOCK -> SLEEPTIMER
 					if(_state == CLOCK) {_radioSubmenue = 0; changeState(RADIO); break;}
-					if(_state == RADIO) { _playerSubmenue = 0; changeState(PLAYER); break;}
+					if(_state == RADIO) {_playerSubmenue = 0; changeState(PLAYER); break;}
                     break;
         case 14:    // ARROW UP
                     if(_state == STATIONSLIST) {lst_RADIO.prevStation(); setTimeCounter(20); break;} // station--
@@ -3001,6 +3001,7 @@ void ir_short_key(uint8_t key) {
 					_radioSubmenue++;
 					if(_radioSubmenue == 3) _radioSubmenue = 0; 
 					changeState(RADIO);
+					connecttohost(_lastconnectedhost.c_str());
 					break;
 			default:    break;
     }
