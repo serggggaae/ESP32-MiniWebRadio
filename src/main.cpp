@@ -3006,17 +3006,16 @@ void ir_short_key(uint8_t key) {
     }
 }
 void ir_long_key(int8_t key) {
-    SerialPrintfln("ir_code: ..  " ANSI_ESC_YELLOW "long pressed key nr: " ANSI_ESC_BLUE "%02i", key);
-                    // LONG SLEEP
-    if(key == 20) fall_asleep();
-                    // LONG CANCEL
-	if(key == 21) if(_state == PLAYER) {_playerSubmenue = 0; stopSong(); changeState(PLAYER);}
+    SerialPrintfln("ir_code: ..  " ANSI_ESC_YELLOW "long pressed key nr: " ANSI_ESC_BLUE "%02i", key); 
+    if(key == 20) fall_asleep(); // LONG SLEEP
+	if(key == 21) { // LONG CANCEL
+				  if(_state == RADIO) {_radioSubmenue = 0; stopSong(); changeState(RADIO);}
+				  if(_state == PLAYER) {_playerSubmenue = 0; stopSong(); changeState(PLAYER);}
 				  if(_state == STATIONSLIST) {_radioSubmenue = 0; changeState(RADIO);}
 				  if(_state == SLEEPTIMER) {_radioSubmenue = 0; changeState(RADIO);}
 				  if(_state == AUDIOFILESLIST) {_playerSubmenue = 0; changeState(PLAYER);}
-				  if(_state == RADIO) {stopSong();}
-                    // LONG BRIGHTNESS
-	if(key == 22) changeState(BRIGHTNESS);
+		          }
+	if(key == 22) changeState(BRIGHTNESS); // LONG BRIGHTNESS
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 // Event from TouchPad
