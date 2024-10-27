@@ -2939,8 +2939,8 @@ void ir_short_key(uint8_t key) {
 
     switch(key) {
         case 15:    // MODE
-                    if(_state == PLAYER) {changeState(RADIO); break;} //  RADIO -> STATIONSLIST -> PLAYER -> DLNA -> CLOCK -> SLEEPTIMER
-					if(_state == CLOCK) { changeState(RADIO); break;}
+                    if(_state == PLAYER) {_radioSubmenue = 0; changeState(RADIO); break;} //  RADIO -> STATIONSLIST -> PLAYER -> DLNA -> CLOCK -> SLEEPTIMER
+					if(_state == CLOCK) {_radioSubmenue = 0; changeState(RADIO); break;}
 					if(_state == RADIO) { _playerSubmenue = 0; changeState(PLAYER); break;}
                     break;
         case 14:    // ARROW UP
@@ -2982,16 +2982,16 @@ void ir_short_key(uint8_t key) {
                     if(_state == STATIONSLIST) {changeState(RADIO); setStationByNumber(lst_RADIO.getSelectedStation()); break;}
                     if(_state == RADIO) {changeState(STATIONSLIST); setTimeCounter(20); break;}
                     if(_state == SLEEPTIMER) {dispFooter.updateOffTime(_sleeptime); _radioSubmenue = 0; changeState(RADIO); break;}
-					if(_state == BRIGHTNESS) {changeState(RADIO); break;}
-					if(_state == CLOCK) {changeState(RADIO); break;}
+					if(_state == BRIGHTNESS) {_radioSubmenue = 0; changeState(RADIO); break;}
+					if(_state == CLOCK) {_radioSubmenue = 0; changeState(RADIO); break;}
 					if(_state == PLAYER) { _f_shuffle = true; preparePlaylistFromSDFolder(_cur_AudioFolder); processPlaylist(true); _playerSubmenue = 1; changeState(PLAYER); break;}
 					if(_state == AUDIOFILESLIST) { _f_shuffle = false; preparePlaylistFromSDFolder(_cur_AudioFolder); processPlaylist(true); _playerSubmenue = 1; changeState(PLAYER); break;}
 					break;
 		case 17:    // CLOCK
 					if(_state == RADIO) {changeState(CLOCK); break;}
-					if(_state == CLOCK) {changeState(RADIO); break;}
+					if(_state == CLOCK) {_radioSubmenue = 0; changeState(RADIO); break;}
 					if(_state == PLAYER) {_SD_content.listDir(_cur_AudioFolder, true, false);_playerSubmenue = 1; changeState(AUDIOFILESLIST); setTimeCounter(20); break;}
-					if(_state == AUDIOFILESLIST) { _playerSubmenue = 0; changeState(PLAYER); break;}
+					if(_state == AUDIOFILESLIST) {_playerSubmenue = 0; changeState(PLAYER); break;}
 					break;
 		case 18:    // SLEEP TIMER
 					if(_state == SLEEPTIMER) {_radioSubmenue = 0; changeState(RADIO); break;}
@@ -3014,6 +3014,8 @@ void ir_long_key(int8_t key) {
 				  if(_state == STATIONSLIST) {_radioSubmenue = 0; changeState(RADIO);}
 				  if(_state == SLEEPTIMER) {_radioSubmenue = 0; changeState(RADIO);}
 				  if(_state == AUDIOFILESLIST) {_playerSubmenue = 0; changeState(PLAYER);}
+				  if(_state == BRIGHTNESS) {_radioSubmenue = 0; changeState(RADIO);}
+				  if(_state == CLOCK) {stopSong();}
 		          }
 	if(key == 22) changeState(BRIGHTNESS); // LONG BRIGHTNESS
 }
