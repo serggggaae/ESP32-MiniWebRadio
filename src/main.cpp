@@ -3013,7 +3013,7 @@ void ir_long_key(int8_t key) {
 	if(key == 21) if(_state == PLAYER) {_playerSubmenue = 0; stopSong(); changeState(PLAYER);}
 				  if(_state == STATIONSLIST) {_radioSubmenue = 0; changeState(RADIO);}
 				  if(_state == SLEEPTIMER) {_radioSubmenue = 0; changeState(RADIO);}
-				  if(_state == AUDIOFILESLIST) {_playerSubmenue = 0; stopSong(); changeState(PLAYER);}
+				  if(_state == AUDIOFILESLIST) {_playerSubmenue = 0; changeState(PLAYER);}
 				  if(_state == RADIO) {stopSong();}
                     // LONG BRIGHTNESS
 	if(key == 22) changeState(BRIGHTNESS);
