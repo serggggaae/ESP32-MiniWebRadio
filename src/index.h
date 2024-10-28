@@ -2930,7 +2930,7 @@ function clear_BT_memItems(){
             <td class="table_cell1"> NINE </td>
             <td> 19 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_19" onclick="IRclick(19)" onkeyup="chIRcmd(19)" onchange="IRupdateJSON(19)"></td>
-            <td class="table_cell2"> RADIOSUBMENUE </td>
+            <td class="table_cell2"> CHANGE SUBMENUE </td>
             <td></td>
             <td></td>
             <td></td>
