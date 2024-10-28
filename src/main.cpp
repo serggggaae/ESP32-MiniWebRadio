@@ -3004,7 +3004,7 @@ void ir_short_key(uint8_t key) {
 					if(_state == AUDIOFILESLIST) { _f_shuffle = false; preparePlaylistFromSDFolder(_cur_AudioFolder); processPlaylist(true); _playerSubmenue = 1; changeState(PLAYER); break;}
 					break;
 		case 17:    // CLOCK
-					if(_state == RADIO) {changeState(CLOCK); break;}
+					if(_state == RADIO) {_clockSubMenue = 0; changeState(CLOCK); break;}
 					if(_state == CLOCK) {_radioSubmenue = 0; changeState(RADIO); break;}
 					if(_state == PLAYER) {_SD_content.listDir(_cur_AudioFolder, true, false);_playerSubmenue = 1; changeState(AUDIOFILESLIST); setTimeCounter(20); break;}
 					if(_state == AUDIOFILESLIST) {_playerSubmenue = 0; changeState(PLAYER); break;}
