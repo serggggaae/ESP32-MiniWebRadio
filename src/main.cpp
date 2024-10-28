@@ -2980,7 +2980,7 @@ void ir_short_key(uint8_t key) {
                     if(_state == SLEEPTIMER) {display_sleeptime(1); break;}
 					if(_state == BRIGHTNESS) {_brightness=_brightness + 5; sdr_BR_value.setValue(_brightness); txt_BR_value.writeText(int2str(_bh1750Value + _brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);}
 					if(_brightness > 100) {_brightness = 100; break;}
-					if(_state == PLAYER) {if(_cur_AudioFileNr + 1 < _SD_content.getSize()) {_cur_AudioFileNr++; showFileName(_SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); showAudioFileNumber(); SD_playFile(_cur_AudioFolder, _SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); _playerSubmenue = 1; changeState(PLAYER); showAudioFileNumber();} break;}
+					if(_state == PLAYER) {if(_cur_AudioFileNr + 1 < _SD_content.getSize()) {_cur_AudioFileNr++; showFileName(_SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); SD_playFile(_cur_AudioFolder, _SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); _playerSubmenue = 1; changeState(PLAYER); showAudioFileNumber();} break;}
                     if(_state == AUDIOFILESLIST) {_cur_AudioFileNr = _SD_content.getNextAudioFile(_cur_AudioFileNr); break;}
 					if(_state == BLUETOOTH) { _f_BTpower = !_f_BTcurPowerState; BTpowerChanged(!_f_BTcurPowerState); break;}
 					break;
@@ -2991,7 +2991,7 @@ void ir_short_key(uint8_t key) {
                     if(_state == SLEEPTIMER) {display_sleeptime(-1); break;}
 					if(_state == BRIGHTNESS) {_brightness=_brightness - 5; sdr_BR_value.setValue(_brightness); txt_BR_value.writeText(int2str(_bh1750Value + _brightness), TFT_ALIGN_CENTER, TFT_ALIGN_CENTER);}
                     if(_brightness < 5) {_brightness = 5; break;}
-					if(_state == PLAYER) {if(_cur_AudioFileNr > 0) {_cur_AudioFileNr--; showFileName(_SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); showAudioFileNumber(); SD_playFile(_cur_AudioFolder, _SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); _playerSubmenue = 1; changeState(PLAYER); showAudioFileNumber();} break;}
+					if(_state == PLAYER) {if(_cur_AudioFileNr > 0) {_cur_AudioFileNr--; showFileName(_SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); SD_playFile(_cur_AudioFolder, _SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); _playerSubmenue = 1; changeState(PLAYER); showAudioFileNumber();} break;}
 					if(_state == AUDIOFILESLIST) {_cur_AudioFileNr = _SD_content.getPrevAudioFile(_cur_AudioFileNr); break;}
 					if(_state == BLUETOOTH) {bt_emitter.changeMode(); break;}
 					break;
