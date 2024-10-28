@@ -2958,6 +2958,7 @@ void ir_short_key(uint8_t key) {
 					if(_state == RADIO) {_playerSubmenue = 0; changeState(PLAYER); break;}
                     break;
         case 14:    // ARROW UP
+					if(_state == BLUETOOTH) { if(_BTvolume < 31) {_BTvolume++; bt_emitter.upvolume();} break;}
                     if(_state == STATIONSLIST) {lst_RADIO.prevStation(); setTimeCounter(20); break;} // station--
                     upvolume(); // VOLUME++
                     if(_state == RADIO)  {txt_RA_staName.hide(); volBox.enable(); volBox.setNumbers(_cur_volume); volBox.show(); setTimeCounter(2); break;}
@@ -2965,6 +2966,7 @@ void ir_short_key(uint8_t key) {
                     if(_state == CLOCK)  if(_clockSubMenue == 0){ _clockSubMenue = 1; changeState(CLOCK);}
                     break;
         case 13:    // ARROW DOWN
+					if(_state == BLUETOOTH) { if(_BTvolume > 0)  {_BTvolume--; bt_emitter.downvolume();} break;}
                     if(_state == STATIONSLIST) {lst_RADIO.nextStation(); setTimeCounter(20); break;} // station++
                     downvolume(); // VOLUME--
                     if(_state == RADIO)  {txt_RA_staName.hide(); volBox.enable(); volBox.setNumbers(_cur_volume); volBox.show(); setTimeCounter(2); break;}
@@ -2980,6 +2982,7 @@ void ir_short_key(uint8_t key) {
 					if(_brightness > 100) {_brightness = 100; break;}
 					if(_state == PLAYER) {if(_cur_AudioFileNr + 1 < _SD_content.getSize()) {_cur_AudioFileNr++; showFileName(_SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); showAudioFileNumber(); SD_playFile(_cur_AudioFolder, _SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); _playerSubmenue = 1; changeState(PLAYER); showAudioFileNumber();} break;}
                     if(_state == AUDIOFILESLIST) {_cur_AudioFileNr = _SD_content.getNextAudioFile(_cur_AudioFileNr); break;}
+					if(_state == BLUETOOTH) { _f_BTpower = !_f_BTcurPowerState; BTpowerChanged(!_f_BTcurPowerState); break;}
 					break;
         case 12:    // ARROW LEFT
                     if(_state == STATIONSLIST) {lst_RADIO.prevPage(); setTimeCounter(20); break;}  // prev page
@@ -2990,6 +2993,7 @@ void ir_short_key(uint8_t key) {
                     if(_brightness < 5) {_brightness = 5; break;}
 					if(_state == PLAYER) {if(_cur_AudioFileNr > 0) {_cur_AudioFileNr--; showFileName(_SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); showAudioFileNumber(); SD_playFile(_cur_AudioFolder, _SD_content.getColouredSStringByIndex(_cur_AudioFileNr)); _playerSubmenue = 1; changeState(PLAYER); showAudioFileNumber();} break;}
 					if(_state == AUDIOFILESLIST) {_cur_AudioFileNr = _SD_content.getPrevAudioFile(_cur_AudioFileNr); break;}
+					if(_state == BLUETOOTH) {bt_emitter.changeMode(); break;}
 					break;
         case 10:    // MUTE
 					muteChanged(!_f_mute);
@@ -3002,8 +3006,9 @@ void ir_short_key(uint8_t key) {
 					if(_state == CLOCK) {_radioSubmenue = 0; changeState(RADIO); break;}
 					if(_state == PLAYER) { _f_shuffle = true; preparePlaylistFromSDFolder(_cur_AudioFolder); processPlaylist(true); _playerSubmenue = 1; changeState(PLAYER); break;}
 					if(_state == AUDIOFILESLIST) { _f_shuffle = false; preparePlaylistFromSDFolder(_cur_AudioFolder); processPlaylist(true); _playerSubmenue = 1; changeState(PLAYER); break;}
+					if(_state == BLUETOOTH) {bt_emitter.pauseResume(); break;}
 					break;
-		case 17:    // CLOCK
+		case 17:    // CLOCK AUDIOFILESLIST
 					if(_state == RADIO) {_clockSubMenue = 0; changeState(CLOCK); break;}
 					if(_state == CLOCK) {_radioSubmenue = 0; changeState(RADIO); break;}
 					if(_state == PLAYER) {_SD_content.listDir(_cur_AudioFolder, true, false);_playerSubmenue = 1; changeState(AUDIOFILESLIST); setTimeCounter(20); break;}
@@ -3013,7 +3018,7 @@ void ir_short_key(uint8_t key) {
 					if(_state == SLEEPTIMER) {_radioSubmenue = 0; changeState(RADIO); break;}
 					changeState(SLEEPTIMER);
 					break;
-		case 19:    // CHANGE STATE
+		case 19:    // RADIOSUBMENUE
 					if(_state == PLAYER) _radioSubmenue = -1;
 					if(_state == AUDIOFILESLIST) _radioSubmenue = -1;
 					{_radioSubmenue++; changeState(RADIO);}
@@ -3033,9 +3038,16 @@ void ir_long_key(int8_t key) {
 				  if(_state == SLEEPTIMER) {_radioSubmenue = 0; changeState(RADIO);}
 				  if(_state == AUDIOFILESLIST) {_playerSubmenue = 0; changeState(PLAYER);}
 				  if(_state == BRIGHTNESS) {_radioSubmenue = 0; changeState(RADIO);}
+				  if(_state == BLUETOOTH) {_radioSubmenue = 0; changeState(RADIO);}
 				  if(_state == CLOCK) {stopSong();}
 		          }
-	if(key == 22) changeState(BRIGHTNESS); // LONG BRIGHTNESS
+	if(key == 22) {// LONG SETUP
+				  if(_state == BRIGHTNESS) changeState(BLUETOOTH);
+				  if(_state == BLUETOOTH) changeState(BRIGHTNESS);
+				  if(_state == RADIO) changeState(BRIGHTNESS);
+				  if(_state == PLAYER) changeState(BRIGHTNESS);
+				  if(_state == CLOCK) changeState(BRIGHTNESS);
+				  }
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 // Event from TouchPad

@@ -2825,7 +2825,7 @@ function clear_BT_memItems(){
             <td class="table_cell2"> MUTE </td>
             <td> 20 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_20" onclick="IRclick(20)" onkeyup="chIRcmd(20)" onchange="IRupdateJSON(20)"></td>
-            <td class="table_cell2"> SLEEP </td>
+            <td class="table_cell2"> LONG SLEEP </td>
             </tr>
 
             <tr>
@@ -2837,7 +2837,7 @@ function clear_BT_memItems(){
             <td class="table_cell2"> ARROW RIGHT </td>
             <td> 21 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_21" onclick="IRclick(21)" onkeyup="chIRcmd(21)" onchange="IRupdateJSON(21)"></td>
-            <td class="table_cell2"> CANCEL </td>
+            <td class="table_cell2"> LONG CANCEL </td>
             </tr>
 
             <tr>
@@ -2849,7 +2849,7 @@ function clear_BT_memItems(){
             <td class="table_cell2"> ARROW LEFT </td>
             <td> 22 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_22" onclick="IRclick(22)" onkeyup="chIRcmd(22)" onchange="IRupdateJSON(22)"></td>
-            <td class="table_cell2"> BRIGHTNESS </td>
+            <td class="table_cell2"> LONG SETUP </td>
             </tr>
 
             <tr>
@@ -2906,7 +2906,7 @@ function clear_BT_memItems(){
             <td class="table_cell1"> SEVEN </td>
             <td> 17 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_17" onclick="IRclick(17)" onkeyup="chIRcmd(17)" onchange="IRupdateJSON(17)"></td>
-            <td class="table_cell2"> CLOCK </td>
+            <td class="table_cell2"> CLOCK AUDIOFILESLIST </td>
             <td></td>
             <td></td>
             <td></td>
@@ -2930,7 +2930,7 @@ function clear_BT_memItems(){
             <td class="table_cell1"> NINE </td>
             <td> 19 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_19" onclick="IRclick(19)" onkeyup="chIRcmd(19)" onchange="IRupdateJSON(19)"></td>
-            <td class="table_cell2"> CHANGE STATE </td>
+            <td class="table_cell2"> RADIOSUBMENUE </td>
             <td></td>
             <td></td>
             <td></td>
