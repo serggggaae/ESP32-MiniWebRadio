@@ -1,4 +1,4 @@
-# ESP32-MiniWebRadio V3.4
+# ESP32-S3-MiniWebRadio V4
 
 ![Display](docs/MiniWebRadio.jpg)
 
@@ -24,24 +24,30 @@ MiniWebRadio Features:
 </ul><br>
 Required HW:
 <ul>
-<li>ESP32 or ESP32-S3 board <b>with PSRAM</b></li>
-<li>External DAC (e.g. PCM5102a, CS4344, PT8211, AC101, ES8388)</li>
-<li>TFT Display with Touchpad (SPI), Display controller can be ILI9341 (320x240px), ILI9486 (480x320px), ILI9488 (480x320px) or ST7796 (480x320px)</li>
+<li>ESP32-S3 board <b>with 4MB PSRAM or larger</b></li>
+<li>DAC (e.g. PCM5102a)</li>
+<li>TFT Display with Touchpad (SPI), Display controller can be ILI9341 (320x240px), ILI9486 (480x320px), ILI9488 (480x320px) or ST7796 (480x320px) or
+RGB Display with Touchpad (I2C) </li>
 <li>SD Card (FAT32) + SD adapter (can use SD slot on back of TFT display if available)</li>
+
+![Display sizes](docs/Displysizes.jpg)
+
+
+
 </ul>
 Optional HW:
 <ul>
 <li>IR receiver + IR remote controller according to the NFC protocol</li>
-<li>KCX_BT_EMITTER V1.7, for connecting external Bluetooth devices in the sending or receiving direction, a connection with voice assistants such as ALEXA is possible</li>
-<li>BH1750 light sensor: The BH1750 has a wide range of values, which is still sufficiently sensitive at average room brightness. On the display, you can set the desired brightness when the sensor is darkened. Then the display is dimmed to this value 'at night'.</li>
+<li>KCX_BT_EMITTER V1.7, for connecting external Bluetooth devices, needs sufficient free GPIOs</li>
+<li>BH1750 light sensor: The BH1750 has a wide range of values, which is still sufficiently sensitive at average room brightness. On the display, you can set the desired brightness when the sensor is darkened. Then the display is dimmed to this value 'at night', needs sufficient free GPIOs.</li>
 </ul><br>
 
 Control is via the display touchscreen or a web page in a browser, no additional components such as switches, rotary encoders, capacitors or resistors are required.
 
-Schematic<br>
-![Schematic ESP32 with external DAC](docs/MWR_V3.4_ESP32_schematic.jpg)<br>
-<br>
-![Schematic ESP32-S3 with external DAC](docs/MWR_V3.4_ESP32-S3_schematic.jpg)<br>
+Schematic<br>SPI Display
+![Schematic ESP32-S3 with external DAC](docs/MWR_V4_SPI_Display_schematic.jpg)<br>
+<br>RGB Display
+![Schematic ESP32-S3 with RGB Display](docs/MWR_V4_RGB_Display_schematic.jpg)<br>
 <br>
 
 [Display Layout](docs/MiniWebRadio%20V3.4%20Layout.pdf)<br>
@@ -71,16 +77,17 @@ Schematic<br>
 
 <br>
 
-|Codec       |ESP32          |ESP32-S3       |                         |
-|------------|---------------|---------------|-------------------------|
-| mp3        | y             | y             |                         |
-| aac        | y             | y             |                         |
-| aacp       | y (mono)      | y (+SBR, +PS) |                         |
-| wav        | y             | y             |                         |
-| flac       | y             | y             |blocksize max 8192 bytes |
-| vorbis     | y <=196Kbit/s | y <=256Kbit/s |                         |
-| m4a        | y             | y             |                         |
-| opus       | y             | y             |celt only                |
+|Codec       |                                                       |
+|------------|-------------------------------------------------------|
+| mp3        | y                                                     |
+| aac        | y                                                     |
+| aacp       | y (+SBR, +PS)                                         |
+| wav        | y                                                     |
+| flac       | y (blocksize max 16KB)                                |
+| vorbis     | y <=256Kbit/s                                         |
+| m4a        | y                                                     |
+| opus       | y (except hybrid mode)                                |
+
 
 ***
 <br>
@@ -101,7 +108,9 @@ If an ESP32 is used, any existing pull-up resistor at pin D0 must be removed (ES
 
 ### Display
 Many displays can be used without any problems. If the touchpad does not work, it may be that the TFT controller does not enable the SPI bus. This is the case with my ILI9488 display. Then MISO of the TFT controller must not be connected.<br>
-![ILI9488 Display](docs/ILI9488_pins.jpg)<br>
+![ILI9488 Display](docs/ILI9488_pins.jpg)
+The values ​​of the PLCK frequency specified for RGB displays are not fully achieved. The reason for this is the high load of PSRAM for audio processing.
+<br>
 
 ### DAC
 On some PCM5102 boards the solder bridges are missing on the back.<br>
@@ -110,9 +119,21 @@ This is how the DAC CS4344 is connected:<br>
 ![CS4344 Board](docs/DAC_CS434.jpg)<br>
 If the DAC PT8211 is used, the *I2S_COMM_FMT* must be changed in common.h. This DAC requires Japanese LSBJ (Least Significant Bit Justified) format
 
+### IR Receíver
+Various 38KHz IR receivers can be used. While the TSOP4838 can be used without any problems, the VS1838B is very sensitive to high frequency fields despite its metal shielding. The VS1838B should not be installed near the WiFi antenna. The HS0038A2D is also suitable. HS0038 - HS0038A2 can be used with Vcc 5V.<br>
+![IR Receiver](docs/IR_Receiver.jpg)<br>
+
+### IR Remote Control
+The remote control must support the NEC protocol. If several remote controls are operated in one room, they must have different address codes to avoid mutual interference. The "Arduino" remote control on the left in the picture uses the address code 0x00FF and the "Android X96" remote control (right) uses the address code 0x01FE.<br>
+![IR Transmitter](docs/IR_Transmitter.jpg)<br>
+
 ### KCX_BT_EMITTER
 The RT pin is not part of the soldering strip, but is located in the middle of the right side.<br>
 ![PCM5102A Board](docs/KCX_BT_EMITTER_pins.jpg)<br>
+
+### WiFi Credentials
+If you see that, there are illegal characters in the WIFI access data. Sometimes only an `erase flash` help
+![Wrong Credentials](docs/wrong_credentials.jpg)<br>
 
 <br>
 ___________________________________________________________
