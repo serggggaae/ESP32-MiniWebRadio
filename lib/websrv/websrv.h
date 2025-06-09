@@ -2,7 +2,7 @@
  * websrv.h
  *
  *  Created on: 09.07.2017
- *  updated on: 20.01.2024
+ *  updated on: 05.05.2025
  *      Author: Wolle
  */
 
@@ -12,10 +12,12 @@
 #include "WiFi.h"
 #include "SD.h"
 #include "FS.h"
-#include "mbedtls/sha1.h"
 #include "base64.h"
+#include "mbedtls/sha1.h"
+#include "mbedtls/base64.h"
 
 extern __attribute__((weak)) void WEBSRV_onInfo(const char*);
+extern __attribute__((weak)) void WEBSRV_onError(const char*);
 extern __attribute__((weak)) void WEBSRV_onCommand(const String cmd, const String param, const String arg);
 extern __attribute__((weak)) void WEBSRV_onRequest(const char* cmd,  const char* param, const char* arg, const char* contentType, uint32_t contentLength);
 extern __attribute__((weak)) void WEBSRV_onDelete(const char* cmd,  const char* param, const char* arg);
@@ -33,6 +35,7 @@ private:
     bool            http_reponse_flag = false ;               // Response required
     bool            ws_conn_request_flag = false;             // websocket connection attempt
     bool            hasclient_WS = false;
+    bool            cmdClientAccept = true;
     String          http_rqfile ;                             // Requested file
     String          http_cmd ;                                // Content of command
     String          http_param;                               // Content of parameter
@@ -40,11 +43,9 @@ private:
     String          _Name;
     String          _Version;
     String          contenttype;
-    char            buff[256];
+    char*           m_buff = NULL;
     char*           msgBuff = NULL;
     char*           m_transBuf = NULL;
-    char*           m_path = NULL;
-    uint8_t         m_pathLength;
     uint8_t         method;
     String          WS_sec_Key;
     String          WS_resp_Key;
@@ -94,17 +95,6 @@ public:
     const char PNG[15]   = "image/png";
 
 private:
-    const int32_t B64index[123] ={
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  62, 63, 62, 62, 63,
-        52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 0,  0,  0,  0,  0,  0,
-        0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14,
-        15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 0,  0,  0,  0,  63,
-        0,  26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-        41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
-    };
-
 
     int32_t indexOf (const char* base, char ch, int32_t startIndex = 0) {
     //fb
@@ -165,7 +155,12 @@ void trim(char *str) {
     memmove(str, start, strlen(start) + 1);  // +1 for '\0'
 }
 
-
+int32_t min3(int32_t a, int32_t b, int32_t c){
+    uint32_t min_val = a;
+    if (b < min_val) min_val = b;
+    if (c < min_val) min_val = c;
+    return min_val;
+}
 
 //--------------------------------------------------------------------------------------------------------------
 

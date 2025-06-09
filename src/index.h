@@ -2,7 +2,7 @@
  *  index.h
  *
  *  Created on: 04.10.2018
- *  Updated on: 24.10.2024
+ *  Updated on: 21.05.2025
  *      Author: Wolle
  *
  *  successfully tested with Chrome and Firefox
@@ -166,6 +166,7 @@ const char index_html[] PROGMEM = R"=====(
             width : 128px;
             height : 128px;
             margin-top: 5px;
+            background-image : url(SD/common/unknown.jpg);
         }
         #label-bt-logo {
             margin-left : 4px;
@@ -197,7 +198,7 @@ const char index_html[] PROGMEM = R"=====(
             border-style: solid;
             border-width: 2px;
             display : inline-block;
-            background-image : url(SD/png/MiniWebRadioV3.png);
+            background-image : url(SD/common/MiniWebRadioV4.jpg);
             width : 480px;
             height : 320px;
             margin-top: 5px;
@@ -443,7 +444,7 @@ var ir_buttons
 
 // ---- websocket section------------------------
 
-var socket = undefined
+var socket = null; // Globale Variable, um die Verbindung zu verfolgen
 var host = location.hostname
 var tm
 var IR_addr = ""
@@ -451,6 +452,7 @@ let ir_arr = new Array(23);
 var bt_RxTx = 'TX'
 var state = 'RADIO'
 var cur_volumeSteps = 21
+var stationsLoaded = false
 
 
 function ping() {
@@ -459,17 +461,22 @@ function ping() {
         console.log("send ping")
         tm = setTimeout(function () {
             toastr.warning('The connection to the MiniWebRadio is interrupted! Please reload the page!')
-        }, 20000)
+        }, 40000)
     }
 }
 
 function connect() {
+
+    if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+        console.log("WebSocket is already open or connecting.");
+        return; // Verhindere mehrfachen Verbindungsaufbau
+    }
+
     socket = new WebSocket('ws://'+window.location.hostname+':81/');
 
     socket.onopen = function () {
         console.log("Websocket connected")
         socket.send('get_tftSize')
-        socket.send('to_listen');
         socket.send("getmute")
         socket.send("get_timeAnnouncement")
         socket.send("gettone=")   // Now load the tones (tab Radio)
@@ -479,22 +486,36 @@ function connect() {
         socket.send("getSleepMode")
         setInterval(ping, 20000)
         loadStationsFromSD("/stations.json")
-
+            .then(() => {
+                stationsLoaded = true
+                console.log("stations loaded")
+                socket.send('to_listen');
+            })
+            .catch(error => {
+                stationsLoaded = false
+                console.error("Error loading stations:", error);
+        });
         loadFileFromSD("/ir_buttons.json", "application/json")
             .then(data => {ir_buttons = data;});
     };
 
     socket.onclose = function (e) {
         console.log(e)
-        console.log('Socket is closed. Reconnect will be attempted in 1 second.', e)
-        socket = null
-        setTimeout(function () {
-            connect()
-        }, 1000)
+        // console.log('Socket is closed. Reconnect will be attempted in 1 second.', e)
+        // socket = null
+        // setTimeout(function () {
+        //     connect()
+        // }, 1000)
+    }
+
+    function disconnect() {
+        console.log('WebSocket wird sauber beendet.');
+        // Hier WebSocket-Verbindung schließen oder andere Ressourcen freigeben
     }
 
     socket.onerror = function (err) {
-        console.log(err)
+        console.log("WebSocket error", err);
+        socket.close(); // Fehlerhafte Verbindung schließen
     }
 
     socket.onmessage = function(event) {
@@ -506,7 +527,7 @@ function connect() {
         if (n >= 0) {
             var msg  = socketMsg.substring(0, n)
             var val  = socketMsg.substring(n + 1)
-            console.log("para ",msg, " val ",val)
+            // console.log("para ",msg, " val ",val)
         }
         else {
             msg = socketMsg
@@ -550,12 +571,26 @@ function connect() {
             case "tftSize":             if(val == 's')  { tft_size = 0; // 320x240px
                                                             document.getElementById('canvas').width  = 96;
                                                             document.getElementById('canvas').height = 96;
+                                                            const img = document.getElementById('label-infopic');
+                                                            img.style.width = '320px';
+                                                            img.style.height = '240px';
                                                             console.log("tftSize is s");
                                         }
-                                        if(val == 'm')  { tft_size = 1;
+                                        if(val == 'm')  { tft_size = 1; // 480x320px
                                                             document.getElementById('canvas').width  = 128;
                                                             document.getElementById('canvas').height = 128;
+                                                            const img = document.getElementById('label-infopic');
+                                                            img.style.width = '480px';
+                                                            img.style.height = '320px';
                                                             console.log("tftSize is m");
+                                        }
+                                        if(val == 'l')  { tft_size = 2; // 800x480px
+                                                            document.getElementById('canvas').width  = 184;
+                                                            document.getElementById('canvas').height = 184;
+                                                            const img = document.getElementById('label-infopic');
+                                                            img.style.width = '800px';
+                                                            img.style.height = '480px';
+                                                            console.log("tftSize is l");
                                         }
                                         break
             case  "volume":             resultstr1.value = "Volume is now " + val;
@@ -585,6 +620,15 @@ function connect() {
                                         if(val == '0') document.getElementById('chk_timeSpeech').checked = false;
                                         if(val == '1') document.getElementById('chk_timeSpeech').checked = true;
                                         break
+            case "getTimeSpeechLang":   console.log(val)
+                                        select = document.getElementById('timeSpeechLang')
+                                        for (let i = 0; i < select.options.length; i++) {
+                                            if (select.options[i].text === val) {
+                                                select.selectedIndex = i;
+                                                break;
+                                            }
+                                        }
+                                        break
             case "DLNA_Names":          addDLNAServer(val) // add to Serverlist
                                         break
             case "dlnaContent":         console.log(val)
@@ -602,7 +646,7 @@ function connect() {
                                         break
             case "test":                resultstr1.value = val
                                         break
-            case "IR_address":          if(IR_addr != val){
+            case "IR_address":          if(state === 'IR' && IR_addr != val){
                                             IR_addr = val
                                             ir_command_A.value=val
                                             socket.send("setIRadr=" + val)
@@ -622,6 +666,7 @@ function connect() {
                                         break;
             case "changeState":         if (val == 'RADIO' && state != 'RADIO') showTab1();
                                         if (val == 'PLAYER'&& state != 'PLAYER') showTab3();
+                                        if (val == 'DLNA'&& state != 'DLNA') showTab4();
                                         if (val == 'BLUETOOTH'&& state != 'BT') showTab9();
                                         if (val == 'IR_SETTINGS' && state != 'IR') showTab8();
                                         break;
@@ -650,6 +695,9 @@ function connect() {
                                             bt_RxTx = 'RX'
                                         }
                                         break;
+            case "timezones":           console.log(msg, val)
+                                        fillTimeZoneSelect(val)
+                                        break;
             default:                    console.log('unknown message', msg, val)
         }
     }
@@ -668,6 +716,16 @@ document.addEventListener('readystatechange', event => {
         connect();  // establish websocket connection
         audioPlayer_buildFileSystemTree("/")
         dlnaPlayer_buildFileSystemTree("/")
+        // Ereignis vor dem Schließen der Webseite hinzufügen
+        // window.addEventListener('beforeunload', (e) => {
+        //     console.log('Seite wird geschlossen. Ressourcen aufräumen...');
+        //     if (typeof disconnect === 'function') {
+        //         disconnect(); // Optional: WebSocket-Verbindung sauber schließen
+        //     }
+        //     // Optional: Warnmeldung anzeigen
+        //     e.preventDefault(); // Standardverhalten blockieren (für ältere Browser)
+        //     e.returnValue = ''; // Einige Browser benötigen dies
+        // });
     }
 })
 
@@ -689,6 +747,18 @@ toastr.options = {
     "showMethod": "fadeIn",
     "hideMethod": "fadeOut"
 }
+
+// Reload images from invisible tabs when the page is fully loaded
+window.onload = function () {
+    const allLazyImages = document.querySelectorAll('img[data-src]');
+    allLazyImages.forEach(img => {
+        img.src = img.dataset.src; // load the rest of the images
+        console.log("load image", img.src)
+        img.removeAttribute('data-src'); // remove data-src
+    });
+    console.log("all images are loaded");
+};
+
 
 function showTab1 () {
     state = 'RADIO'
@@ -745,7 +815,7 @@ function showTab3 () {
     document.getElementById('tab-content6').style.display = 'none'
     document.getElementById('tab-content7').style.display = 'none'
     document.getElementById('tab-content8').style.display = 'none'
-    document.getElementById('tab-content8').style.display = 'none'
+    document.getElementById('tab-content9').style.display = 'none'
     document.getElementById('btn1').src = 'SD/png/Radio_Green.png'
     document.getElementById('btn2').src = 'SD/png/Station_Green.png'
     document.getElementById('btn3').src = 'SD/png/MP3_Yellow.png'
@@ -821,13 +891,13 @@ function showTab6 () {
     document.getElementById('btn5').src = 'SD/png/Search_Green.png'
     document.getElementById('btn6').src = 'SD/png/Settings_Yellow.png'
     document.getElementById('btn7').src = 'SD/png/About_Green.png'
-    // getTimeZoneName()
-    loadTimeZones()
     loadRingVolume()
     loadVolumeAfterAlarm()
     loadVolumeSteps()
     socket.send('getRingVolume')
     socket.send('getVolAfterAlarm')
+    socket.send("getTimeSpeechLang")
+    socket.send("getTimeZones")  // fetch timezones_json
 }
 
 function showTab7 () {
@@ -886,7 +956,7 @@ function showTab9 () {  // KCX BT Emitter
     document.getElementById('tab-content5').style.display = 'none'
     document.getElementById('tab-content6').style.display = 'none'
     document.getElementById('tab-content7').style.display = 'none'
-    document.getElementById('tab-content7').style.display = 'none'
+    document.getElementById('tab-content8').style.display = 'none'
     document.getElementById('tab-content9').style.display = 'block'
     document.getElementById('btn1').src = 'SD/png/Radio_Green.png'
     document.getElementById('btn2').src = 'SD/png/Station_Green.png'
@@ -917,8 +987,8 @@ function saveTextFileToSD (fileName, content) {
     }
     xhr.onreadystatechange = function () { // Call a function when the state changes.
         if (xhr.readyState === 4) {
-            if (xhr.responseText === 'OK') alert(fileName + ' successfully uploaded')
-            else alert(fileName + ' successfully uploaded')
+            if (xhr.status === 200) alert(fileName + ' successfully uploaded')
+            else alert(fileName + 'not successfully uploaded')
         }
     }
     xhr.send(fd) // send
@@ -1180,7 +1250,7 @@ function editCell(cell, rowIndex, cellIndex) {
             }
             cell.textContent = newValue;
             tableData[rowIndex][cellIndex] = newValue;
-            saveJsonFileToSD("/stations.json", JSON.stringify(tableData));  // save modified data
+            saveJsonFileToSD("/stations.json", JSON.stringify(tableData, 0, 2));  // save modified data
             if (hasChanged) showMessage1('Cell has been successfully modified.');
             updateStationlist();
         } else {
@@ -1201,20 +1271,20 @@ function insertRow(z) { // z: 0 = above, 1 = below
     if (selectedRowIndex !== null) {
         tableData.splice(selectedRowIndex + z, 0, newRowData);
         loadTableData();
-        saveJsonFileToSD("/stations.json", JSON.stringify(tableData));  // Speichert die geänderten Daten
+        saveJsonFileToSD("/stations.json", JSON.stringify(tableData, 0, 2));  // Speichert die geänderten Daten
         showMessage1('Row successfully inserted.');
         updateStationlist();
     }
     hideContextMenu();
 }
 
-function insertLastRow(Name, Url) { // z: 0 = above, 1 = below
-    const newRowData = ['*', '', Name, Url];
+function insertLastRow(CountryCode, Name, Url) { // z: 0 = above, 1 = below
+    const newRowData = ['*', CountryCode, Name, Url];
     let rowCount = tableData.length;
     if (rowCount !== null) {
         tableData.splice(rowCount + 1, 0, newRowData);
         loadTableData();
-        saveJsonFileToSD("/stations.json", JSON.stringify(tableData));  // Speichert die geänderten Daten
+        saveJsonFileToSD("/stations.json", JSON.stringify(tableData, 0, 2));  // Speichert die geänderten Daten
         showMessage1('Row successfully inserted.');
         updateStationlist();
         deletedRowData = ['*', '', '', 'http'];
@@ -1228,7 +1298,7 @@ function deleteRow() {
         deletedRowData = tableData[selectedRowIndex];
         tableData.splice(selectedRowIndex, 1);
         loadTableData();
-        saveJsonFileToSD("/stations.json", JSON.stringify(tableData));  // Speichert die geänderten Daten
+        saveJsonFileToSD("/stations.json", JSON.stringify(tableData, 0, 2));  // Speichert die geänderten Daten
         showMessage1('Row was successfully deleted.');
         updateStationlist();
     }
@@ -1286,11 +1356,12 @@ async function loadStationsFromSD(file_name) {
             tableData = JSON.parse(jsonContent);
         } else {
             // Use default data when there is no stored data
-            tableData = [
-                ["*", "D", "0N 70s", "http://0n-70s.radionetz.de:8000/0n-70s.mp3"],
-                ["*", "D", "0N 80s", "http://0n-80s.radionetz.de:8000/0n-80s.mp3"],
-                ["*", "D", "0N 90s", "http://0n-90s.radionetz.de:8000/0n-90s.mp3"]
-            ];
+            // tableData = [
+            //     ["*", "DE", "0N 70s", "http://0n-70s.radionetz.de:8000/0n-70s.mp3"],
+            //     ["*", "DE", "0N 80s", "http://0n-80s.radionetz.de:8000/0n-80s.mp3"],
+            //     ["*", "DE", "0N 90s", "http://0n-90s.radionetz.de:8000/0n-90s.mp3"]
+            // ];
+            return false
         }
 
         // Tabelle erst laden, wenn die Daten bereitgestellt wurden
@@ -1299,13 +1370,15 @@ async function loadStationsFromSD(file_name) {
 
     } catch (error) {
         console.error('Es gab ein Problem beim Laden der Datei:', error);
-            tableData = [
-                ["*", "D", "0N 70s", "http://0n-70s.radionetz.de:8000/0n-70s.mp3"],
-                ["*", "D", "0N 80s", "http://0n-80s.radionetz.de:8000/0n-80s.mp3"],
-                ["*", "D", "0N 90s", "http://0n-90s.radionetz.de:8000/0n-90s.mp3"]
-            ];
-            saveJsonFileToSD("/stations.json", JSON.stringify(tableData));
+            // tableData = [
+            //     ["*", "DE", "0N 70s", "http://0n-70s.radionetz.de:8000/0n-70s.mp3"],
+            //     ["*", "DE", "0N 80s", "http://0n-80s.radionetz.de:8000/0n-80s.mp3"],
+            //     ["*", "DE", "0N 90s", "http://0n-90s.radionetz.de:8000/0n-90s.mp3"]
+            // ];
+            // saveJsonFileToSD("/stations.json", JSON.stringify(tableData, 0, 2));  // Speichert die geänderten Daten
+            return false
     }
+    return true;
 }
 
 // Event-Listener für alle <tr>-Elemente in der Tabelle hinzufügen
@@ -1362,7 +1435,7 @@ function updateStationlist () { // select in tab Radio
 
 function saveStations_json(){
     // Create a blob with the content
-    const blob = new Blob([JSON.stringify(tableData)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(tableData, 0, 2)], { type: 'application/json' });
 
     // Create an invisible link to download the file
     const link = document.createElement('a');
@@ -1384,12 +1457,17 @@ function loadStations_json(event){
         tableData = JSON.parse(data)
         loadTableData()
         updateStationlist();
-        saveJsonFileToSD("/stations.json", JSON.stringify(tableData));  // save modified data
+        let rowCount = tableData.length;
+        if (rowCount !== null) {
+            saveJsonFileToSD("/stations.json", JSON.stringify(tableData, 0, 2));  // save modified data
+        }
     }
     reader.onerror = function (ex) {
+        loadsStations = false
         console.log(ex)
     }
     reader.readAsText(file)
+    loadsStations = true
 }
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 // --------------------------------------------------------- TAB AUDIO PLAYER ------------------------------------------------------------------------
@@ -1598,7 +1676,7 @@ function open_RB_page() {
 }
 
 function addStationsToGrid () {
-    insertLastRow($('#stations option:selected').text().trim(), $('#streamurl').val());
+    insertLastRow($('#CountryCode').val(), $('#rb_stationname').val(), $('#streamurl').val());
 }
 
 function loadJSON (path, success, error) {
@@ -1623,47 +1701,121 @@ function loadJSON (path, success, error) {
 
 function selectcategory (presctrl) { // tab Search: preset, select a category
 
-  if(presctrl.value == "bycountry")  {loadJSON('https://de1.api.radio-browser.info/json/countries', gotItems, 'jsonp'); category="country"}
-  if(presctrl.value == "bylanguage") {loadJSON('https://de1.api.radio-browser.info/json/languages', gotItems, 'jsonp'); category="language"}
-  if(presctrl.value == "bytag")      {loadJSON('https://de1.api.radio-browser.info/json/tags',      gotItems, 'jsonp'); category="tag"}
+  if(presctrl.value == "bycountry")  {loadJSON('https://de2.api.radio-browser.info/json/countries#name', gotCountries, 'jsonp'); category="country"}
+  if(presctrl.value == "bylanguage") {loadJSON('https://de2.api.radio-browser.info/json/languages/?hidebroken=true&limit=100&reverse=true&order=stationcount', gotLanguages, 'jsonp'); category="language"}
+  if(presctrl.value == "bytag")      {loadJSON('https://de2.api.radio-browser.info/json/tags/?hidebroken=true&limit=100&reverse=true&order=stationcount',      gotTags, 'jsonp'); category="tag"}
 }
 
 function selectitem (presctrl) { // tab Search: preset, select a station
-  if(category == "country")  loadJSON('https://de1.api.radio-browser.info/json/stations/bycountry/'  + presctrl.value, gotStations, 'jsonp')
-  if(category == "language") loadJSON('https://de1.api.radio-browser.info/json/stations/bylanguage/' + presctrl.value, gotStations, 'jsonp')
-  if(category == "tag")      loadJSON('https://de1.api.radio-browser.info/json/stations/bytag/'      + presctrl.value, gotStations, 'jsonp')
+  if(category == "country")  loadJSON('https://de2.api.radio-browser.info/json/stations/bycountrycodeexact/'  + presctrl.value.substring(0, 2) + "#name", gotStations, 'jsonp')
+  if(category == "language") loadJSON('https://de2.api.radio-browser.info/json/stations/bylanguage/' + presctrl.value.substring(0, presctrl.value.lastIndexOf(" ")), gotStations, 'jsonp')
+  if(category == "tag")      loadJSON('https://de2.api.radio-browser.info/json/stations/bytag/'      + presctrl.value.substring(0, presctrl.value.lastIndexOf(" ")), gotStations, 'jsonp')
 
 }
 
-function gotItems (data) { // fill select countries
+function getFlagEmoji(countryCode) {
+    // Normalisiere die Eingabe und nimm nur die ersten beiden Zeichen
+    if(!countryCode) return ""
+    const codePoints = countryCode
+        .toUpperCase()
+        .split('')
+        .map(char => 0x1F1E6 + char.charCodeAt(0) - 'A'.charCodeAt(0));
+    // Konvertiere die Unicode-Codepoints in ein Emoji
+    return String.fromCodePoint(...codePoints);
+}
+
+function validateStationname() {
+    const inputField = document.getElementById("rb_stationname");
+    const invalidChars = /[\\/:*?"<>|]/
+    if (invalidChars.test(inputField.value)) { // If invalid characters are found, turn text red
+        inputField.style.color = "red";
+    } else { // If all characters are valid, colour text black
+        inputField.style.color = "black";
+    }
+}
+
+function gotCountries (data) { // fill select countries
+    var select = document.getElementById('item')
+    var opt
+    select.options.length = 1
+    for (var i = 0; i < data.length; i++) {
+        if (i < 2) continue
+        // if(!data[i].iso_3166_1) continue
+        // if(!data[i].name) continue
+        // if(!data[i].stationcount) continue
+        opt = document.createElement('OPTION')
+        flag = getFlagEmoji(data[i].iso_3166_1)  // 🇵🇹
+        const firstChar = data[i].iso_3166_1.charAt(0)
+        if(firstChar === firstChar.toLowerCase()) continue; // only uppercases are valid, "DE" but not "de"
+        opt.text = data[i].iso_3166_1 + "  " + flag + "  " + data[i].name + "  (" + data[i].stationcount + ")"
+        select.add(opt)
+    }
+    console.log(data.uuid)
+    var stations = document.getElementById('stations') // set stations to default
+    stations.options.length = 1
+    const options = Array.from(select.options);
+
+    select.options.length = 0; // clear select
+    options.forEach(option => select.appendChild(option));
+    select.selectedIndex = 0; // set default
+    const selectElement = document.getElementById("stations");
+    selectElement.options.length = 0;
+}
+
+function gotLanguages (data) { // fill select countries
     var select = document.getElementById('item')
     var opt
     select.options.length = 1
     for (var i = 0; i < data.length; i++) {
         if (i < 2) continue
         opt = document.createElement('OPTION')
-        opt.text = data[i].name
+        const firstChar = data[i].name.charAt(0)
+        if(firstChar === '#') continue; // # are not valid
+        opt.text = data[i].name + "  (" + data[i].stationcount + ")"
         select.add(opt)
     }
     console.log(data.uuid)
     var stations = document.getElementById('stations') // set stations to default
     stations.options.length = 1
-    // sort data
     const options = Array.from(select.options);
 
-    const uniqueOptions = options.filter((option, index, self) => {
-        return self.findIndex(o => o.text === option.text) === index;
-    });
-
-    uniqueOptions.sort((a, b) => a.text.localeCompare(b.text));
     select.options.length = 0; // clear select
-    uniqueOptions.forEach(option => select.appendChild(option));
+    options.forEach(option => select.appendChild(option));
     select.selectedIndex = 0; // set default
     const selectElement = document.getElementById("stations");
     selectElement.options.length = 0;
 }
 
+function gotTags (data) { // fill select countries
+    var select = document.getElementById('item')
+    var opt
+    select.options.length = 1
+    for (var i = 0; i < data.length; i++) {
+        if (i < 2) continue
+        opt = document.createElement('OPTION')
+        // const firstChar = data[i].name.charAt(0)
+        // if(firstChar === '#') continue; // # are not valid
+        opt.text = data[i].name + "  (" + data[i].stationcount + ")"
+        select.add(opt)
+    }
+    console.log(data.uuid)
+    var stations = document.getElementById('stations') // set stations to default
+    stations.options.length = 1
+    const options = Array.from(select.options);
+
+    select.options.length = 0; // clear select
+    options.forEach(option => select.appendChild(option));
+    select.selectedIndex = 0; // set default
+    const selectElement = document.getElementById("stations");
+    selectElement.options.length = 0;
+}
+
+
 function gotStations (data) { // fill select stations
+    const cc = document.getElementById('CountryCode')
+    const it = document.getElementById('item')
+    if(category === "country") cc.value = it.value.substring(0, 2)
+    else cc.value = ''
     var select = document.getElementById('stations')
     var opt
     select.options.length = 1
@@ -1703,6 +1855,7 @@ function selectstation () { // select a station
     scaleCanvasImage(favi)
     var j = document.getElementById('rb_stationname')
     j.value = countryallstations[value].name.trim()
+    validateStationname()
 }
 
 function teststreamurl () { // Search: button play - enter a url to play from
@@ -1724,8 +1877,8 @@ function scaleCanvasImage (url) {
     ctx.rect(0, 0, canvas.width, canvas.height)
     ctx.fillStyle = 'white'
     ctx.fill()
-    //var co = 'https://api.codetabs.com/v1/proxy?quest='
-    var co = 'https://corsproxy.io/?'
+    var co = 'https://api.codetabs.com/v1/proxy?quest='
+    //var co = 'https://corsproxy.io/?'
     src = co + url
     var imgObj = new Image()
     imgObj.crossOrigin = 'anonymous'
@@ -1788,7 +1941,7 @@ function uploadCanvasImage () {
     }
     xhr.onreadystatechange = function () { // Call a function when the state changes.
         if (xhr.readyState === 4) {
-          if (xhr.responseText === 'OK') alert(filename + ' successfully uploaded')
+            if(xhr.status === 200) alert(filename + ' successfully uploaded')
             else alert(filename + 'not successfully uploaded')
         }
     }
@@ -1824,25 +1977,29 @@ function downloadCanvasImage () {
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------    TAB Info    -----------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------------------------------------
-function getTimeZoneName() { //
-    var xhr = new XMLHttpRequest()
-    xhr.timeout = 2000; // time in milliseconds
-    xhr.open('GET', 'getTimeZoneName' + '&version=' + Math.random(), true)
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
-            if (xhr.status === 200) {
-                g_timeZoneName =xhr.responseText
-                console.log("tzName=", g_timeZoneName)
-                return g_timeZoneName
+function getTimeZoneName() {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.timeout = 2000; // Zeit in Millisekunden
+        xhr.open('GET', 'getTimeZoneName' + '&version=' + Math.random(), true);
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    const timeZoneName = xhr.responseText;
+                    console.log("tzName=", timeZoneName);
+                    resolve(timeZoneName); // Dissolve the promise with the value obtained
+                } else {
+                    console.log("xhr.status=", xhr.status);
+                    reject(`Error: Status ${xhr.status}`); // Reject the promise if an error occurs
+                }
             }
-            console.log("xhr.status=", xhr.status)
-        }
-    }
-    xhr.ontimeout = (e) => {
-        // XMLHttpRequest timed out. Do something here.
-        console.log("timeout in getTimeZoneName()")
-    }
-    xhr.send()
+        };
+        xhr.ontimeout = () => {
+            console.log("timeout in getTimeZoneName()");
+            reject("Error: Investigation of the request"); // Reject the promise if a timeout occurs
+        };
+        xhr.send();
+    });
 }
 
 function setTimeZone(selectObject){
@@ -1851,40 +2008,27 @@ function setTimeZone(selectObject){
     socket.send("setTimeZone=" + txt + "&" + value)
 }
 
-function loadTimeZones() { // load from SD
-    g_timeZoneName = getTimeZoneName()
-    var tzFile = new XMLHttpRequest()
-    tzFile.timeout = 2000; // time in milliseconds
-    tzFile.open('GET', 'SD_Download?/timezones.csv', true)
-    tzFile.onreadystatechange = function () {
-        if (tzFile.readyState === 4) {
-            var tzdata = tzFile.responseText
-            var tzNames = tzdata.split("\n")
-            select = document.getElementById('TimeZoneSelect') // show Time Zones List
-            select.options.length = 0
-            var j = 0
-            for (var i = 0; i < tzNames.length; i++) {
-                var [tzItem1, tzItem2] = tzNames[i].split("\t")
-                opt = document.createElement('OPTION')
-                opt.text = (tzItem1)
-                opt.value = (tzItem2)
-                if(tzItem1.length == 0 || tzItem2.length == 0) continue
-                select.add(opt)
-            }
-            for(var i = 0, j = select.options.length; i < j; ++i) {
-                if(select.options[i].innerHTML === g_timeZoneName) {
-                    select.selectedIndex = i;
-                    break;
-                }
+function fillTimeZoneSelect(timezones_json){
+    const timezones = JSON.parse(timezones_json);
+    const selectElement = document.getElementById('TimeZoneSelect');
+    timezones.forEach(([name, offset]) => {
+        const option = document.createElement('option');
+        option.value = offset;
+        option.textContent = name;
+        selectElement.appendChild(option);
+    });
+    getTimeZoneName().then((tzName) => {
+        const selectElement = document.getElementById('TimeZoneSelect');
+        for (let i = 0; i < selectElement.options.length; i++) {
+            if (selectElement.options[i].text === tzName) {
+                selectElement.selectedIndex = i;
+                break;
             }
         }
-    }
-    tzFile.ontimeout = (e) => {
-        // XMLHttpRequest timed out.
-        console.log("load SD/timezones.csv timeout")
-    }
-    tzFile.send()
-}  // END loadTimeZones
+    }).catch((error) => {
+        console.error("Error when calling up the time zone name:", error);
+    });
+}
 
 function loadRingVolume(){
     const selectRingVolume = document.getElementById('selRingVolume');
@@ -1895,7 +2039,7 @@ function loadRingVolume(){
         option.value = i;
         option.textContent = i;
         if (i === 0) {
-            option.selected = true; // Setzt den Standardwert
+            option.selected = true; // Sets the default value
         }
         selectRingVolume.appendChild(option);
     }
@@ -1910,7 +2054,7 @@ function loadVolumeAfterAlarm(){
         option.value = i;
         option.textContent = i;
         if (i === 0) {
-            option.selected = true; // Setzt den Standardwert
+            option.selected = true; // Sets the default value
         }
         selectVolumeAfterAlarm.appendChild(option);
     }
@@ -1926,7 +2070,7 @@ function loadVolumeSteps(){
         option.value = i;
         option.textContent = i;
         if (i === 21) {
-            option.selected = true; // Setzt den Standardwert
+            option.selected = true; // Sets the default value
         }
         selectVolumeSteps.appendChild(option);
     }
@@ -1976,7 +2120,7 @@ function IRclick(btn){
 }
 
 function chIRcmd(btn){  // IR command, value changed
-    var arrLen = 20
+    var arrLen = 33
     var irArr = []
     var val1
     var ret = true
@@ -2014,22 +2158,22 @@ function chIRcmd(btn){  // IR command, value changed
 function writeJSONToTable(jsonIrString) {
     // console.log(jsonIrString)
     if (!jsonIrString) {
-        console.error("Kein JSON zum Rückschreiben verfügbar.");
+        console.error("No JSON available for a return writing.");
         return;
     }
     const data = JSON.parse(jsonIrString);
         data.forEach(item => {
-        const keys = Object.keys(item); // Hole die Schlüssel des Objekts (z.B. "0", "label")
-        const number = keys[0]; // Die erste Zahl (z.B. "0", "10", "20")
-        const command = item[number]; // Der Wert des Befehls
+        const keys = Object.keys(item); // Get the keys of the object (z.B. "0", "label")
+        const number = keys[0]; // The first number(z.B. "0", "10", "20")
+        const command = item[number]; // The value of the command
         ir_arr[number] = command
         const label = item["label"]; // Das Label
-        // Schreibe den Befehl zurück in das entsprechende Input-Feld
+        // Write the command back to the corresponding input field
         const inputField = document.getElementById(`ir_command_${number}`);
         if (inputField) {
             inputField.value = command;
         }
-        // Schreibe das Label zurück in die Tabelle
+        // Write the label back into the table
         const labelCell = inputField?.parentElement?.nextElementSibling;
         // if (labelCell) {
         //     labelCell.textContent = label;
@@ -2041,7 +2185,7 @@ function writeJSONToTable(jsonIrString) {
 function getTableDataAsJSON(tableId) { // make a JSON string from IR table
     const table = document.getElementById(tableId);
     if (!table) {
-        console.error(`Tabelle mit der ID ${tableId} nicht gefunden.`);
+        console.error(`Table with the ID ${tableId} not found.`);
         return;
     }
     const rows = table.getElementsByTagName('tr');
@@ -2051,7 +2195,7 @@ function getTableDataAsJSON(tableId) { // make a JSON string from IR table
         if(i == 0) cells = rows[i].getElementsByTagName('th'); // header
         else       cells = rows[i].getElementsByTagName('td');
         if (cells.length > 0) {
-            // Erste Gruppe: Erste Spalte und Kommando/Label 1
+            // First group: First column and command/label 1
             const number1 = cells[0].textContent.trim();
             const command1 = document.getElementById(`ir_command_${number1}`)?.value || "";
             const label1 = cells[2].textContent.trim();
@@ -2061,7 +2205,7 @@ function getTableDataAsJSON(tableId) { // make a JSON string from IR table
                 obj1["label"] = label1;
                 data.push(obj1);
             }
-            // Zweite Gruppe: Vierte Spalte und Kommando/Label 2
+            // Second group: Fourth column and command/label 2
             const number2 = cells[3].textContent.trim();
             const command2 = document.getElementById(`ir_command_${number2}`)?.value || "";
             const label2 = cells[5].textContent.trim();
@@ -2071,7 +2215,7 @@ function getTableDataAsJSON(tableId) { // make a JSON string from IR table
                 obj2["label"] = label2;
                 data.push(obj2);
             }
-            // Dritte Gruppe: Sechste Spalte und Kommando/Label 3 (falls vorhanden)
+            // Third group: sixth column and command/label 3
             const number3 = cells[6]?.textContent.trim() || "";
             const command3 = document.getElementById(`ir_command_${number3}`)?.value || "";
             const label3 = cells[8]?.textContent.trim() || "";
@@ -2081,9 +2225,19 @@ function getTableDataAsJSON(tableId) { // make a JSON string from IR table
                 obj3["label"] = label3;
                 data.push(obj3);
             }
+            // Fourth group: eighth column and command/label 4
+            const number4 = cells[9]?.textContent.trim() || "";
+            const command4 = document.getElementById(`ir_command_${number4}`)?.value || "";
+            const label4 = cells[11]?.textContent.trim() || "";
+            if (command4 && label4) {
+                const obj4 = {};
+                obj4[number4] = command4;
+                obj4["label"] = label4;
+                data.push(obj4);
+            }
         }
     }
-    return JSON.stringify(data, null, 2); // JSON formatieren (schönere Ausgabe)
+    return JSON.stringify(data, null, 2); // Format Json (more beautiful edition)
 }
 
 function IRupdateJSON(btnNr){
@@ -2207,39 +2361,51 @@ function clear_BT_memItems(){
 <div id="content" >
     <!-- ~~~~~~~~~~~~~~~~~~~~~~ hidden div ~~~~~~~~~~~~~~~~~~~~~~-->
     <div id="preloaded-images">
-        <img src="SD/png/Radio_Green.png"               width="1" height="1" loading="lazy" alt="Image 01">
-        <img src="SD/png/Radio_Yellow.png"              width="1" height="1" loading="lazy" alt="Image 02">
-        <img src="SD/png/Station_Green.png"             width="1" height="1" loading="lazy" alt="Image 03">
-        <img src="SD/png/Station_Yellow.png"            width="1" height="1" loading="lazy" alt="Image 04">
-        <img src="SD/png/MP3_Green.png"                 width="1" height="1" loading="lazy" alt="Image 05">
-        <img src="SD/png/MP3_Yellow.png"                width="1" height="1" loading="lazy" alt="Image 06">
-        <img src="SD/png/Search_Green.png"              width="1" height="1" loading="lazy" alt="Image 06">
-        <img src="SD/png/Search_Yellow.png"             width="1" height="1" loading="lazy" alt="Image 07">
-        <img src="SD/png/About_Green.png"               width="1" height="1" loading="lazy" alt="Image 08">
-        <img src="SD/png/About_Yellow.png"              width="1" height="1" loading="lazy" alt="Image 09">
-        <img src="SD/png/Button_Previous_Green.png"     width="1" height="1" loading="lazy" alt="Image 10">
-        <img src="SD/png/Button_Previous_Yellow.png"    width="1" height="1" loading="lazy" alt="Image 11">
-        <img src="SD/png/Button_Previous_Blue.png"      width="1" height="1" loading="lazy" alt="Image 12">
-        <img src="SD/png/Button_Next_Green.png"         width="1" height="1" loading="lazy" alt="Image 13">
-        <img src="SD/png/Button_Next_Yellow.png"        width="1" height="1" loading="lazy" alt="Image 14">
-        <img src="SD/png/Button_Volume_Down_Blue.png"   width="1" height="1" loading="lazy" alt="Image 15">
-        <img src="SD/png/Button_Volume_Down_Yellow.png" width="1" height="1" loading="lazy" alt="Image 16">
-        <img src="SD/png/Button_Volume_Up_Blue.png"     width="1" height="1" loading="lazy" alt="Image 17">
-        <img src="SD/png/Button_Volume_Up_Yellow.png"   width="1" height="1" loading="lazy" alt="Image 18">
-        <img src="SD/png/Button_Mute_Green.png"         width="1" height="1" loading="lazy" alt="Image 19">
-        <img src="SD/png/Button_Mute_Yellow.png"        width="1" height="1" loading="lazy" alt="Image 20">
-        <img src="SD/png/Button_Mute_Red.png"           width="1" height="1" loading="lazy" alt="Image 21">
-        <img src="SD/png/Button_Ready_Blue.png"         width="1" height="1" loading="lazy" alt="Image 22">
-        <img src="SD/png/Button_Ready_Yellow.png"       width="1" height="1" loading="lazy" alt="Image 23">
-        <img src="SD/png/Button_Test_Green.png"         width="1" height="1" loading="lazy" alt="Image 24">
-        <img src="SD/png/Button_Test_Yellow.png"        width="1" height="1" loading="lazy" alt="Image 25">
-        <img src="SD/png/Button_Upload_Blue.png"        width="1" height="1" loading="lazy" alt="Image 26">
-        <img src="SD/png/Button_Upload_Yellow.png"      width="1" height="1" loading="lazy" alt="Image 27">
-        <img src="SD/png/Button_Download_Blue.png"      width="1" height="1" loading="lazy" alt="Image 28">
-        <img src="SD/png/Button_Download_Yellow.png"    width="1" height="1" loading="lazy" alt="Image 29">
-        <img src="SD/png/Remote_Control_Yellow.png"     width="1" height="1" loading="lazy" alt="Image 30">
-        <img src="SD/png/Remote_Control_Blue.png"       width="1" height="1" loading="lazy" alt="Image 30">
-        <img src="SD/common/MiniWebRadioV3.jpg"         width="1" height="1" loading="lazy" alt="Image 31">
+        <img data-src="SD/png/Radio_Green.png"                   >
+        <img data-src="SD/png/Radio_Yellow.png"                  >
+        <img data-src="SD/png/Station_Green.png"                 >
+        <img data-src="SD/png/Station_Yellow.png"                >
+        <img data-src="SD/png/MP3_Green.png"                     >
+        <img data-src="SD/png/MP3_Yellow.png"                    >
+        <img data-src="SD/png/Button_DLNA_Green.png"             >
+        <img data-src="SD/png/Button_DLNA_Yellow.png"            >
+        <img data-src="SD/png/Search_Green.png"                  >
+        <img data-src="SD/png/Search_Yellow.png"                 >
+        <img data-src="SD/png/Settings_Green.png"                >
+        <img data-src="SD/png/Settings_Yellow.png"               >
+        <img data-src="SD/png/About_Green.png"                   >
+        <img data-src="SD/png/About_Yellow.png"                  >
+        <img data-src="SD/png/Button_Previous_Green.png"         >
+        <img data-src="SD/png/Button_Previous_Blue.png"          >
+        <img data-src="SD/png/Button_Previous_Yellow.png"        >
+        <img data-src="SD/png/Button_Next_Green.png"             >
+        <img data-src="SD/png/Button_Next_Yellow.png"            >
+        <img data-src="SD/png/Button_Volume_Down_Blue.png"       >
+        <img data-src="SD/png/Button_Volume_Down_Yellow.png"     >
+        <img data-src="SD/png/Button_Volume_Up_Blue.png"         >
+        <img data-src="SD/png/Button_Volume_Up_Yellow.png"       >
+        <img data-src="SD/png/Button_Mute_Green.png"             >
+        <img data-src="SD/png/Button_Mute_Yellow.png"            >
+        <img data-src="SD/png/Button_Mute_Red.png"               >
+        <img data-src="SD/png/Button_Ready_Blue.png"             >
+        <img data-src="SD/png/Button_Ready_Yellow.png"           >
+        <img data-src="SD/png/Button_Test_Green.png"             >
+        <img data-src="SD/png/Button_Test_Yellow.png"            >
+        <img data-src="SD/png/Button_Upload_Blue.png"            >
+        <img data-src="SD/png/Button_Upload_Yellow.png"          >
+        <img data-src="SD/png/Button_Stop_Blue.png"              >
+        <img data-src="SD/png/Button_Stop_Yellow.png"            >
+        <img data-src="SD/png/Button_Pause_Resume_Blue.png"      >
+        <img data-src="SD/png/Button_Pause_Resume_Yellow.png"    >
+        <img data-src="SD/png/Remote_Control_Yellow.png"         >
+        <img data-src="SD/png/Remote_Control_Blue.png"           >
+        <img data-src="SD/png/Button_BT_Yellow.png"              >
+        <img data-src="SD/png/Button_BT_Blue.png"                >
+        <img data-src="SD/png/Button_Pause_Blue.png"             >
+        <img data-src="SD/png/Button_Pause_Yellow.png"           >
+        <img data-src="SD/png/Button_Download_Blue.png"          >
+        <img data-src="SD/png/Button_Download_Yellow.png"        >
+        <img data-src="SD/common/MiniWebRadioV4.jpg"             >
     </div>
 
     <div id="dialog">
@@ -2272,8 +2438,8 @@ function clear_BT_memItems(){
             <img id="btn3" src="SD/png/MP3_Green.png" alt="mp3" onclick="showTab3()">
             <img id="btn4" src="SD/png/Button_DLNA_Green.png" alt="mp3" onclick="showTab4()">
             <img id="btn5" src="SD/png/Search_Green.png" alt="search" onclick="showTab5()">
-            <img id="btn6" src="SD/png/Settings_Green.png" alt="radio" onclick="showTab6()">
-            <img id="btn7" src="SD/png/About_Green.png" alt="radio" onclick="showTab7()">
+            <img id="btn6" src="SD/png/Settings_Green.png" alt="settings" onclick="showTab6()">
+            <img id="btn7" src="SD/png/About_Green.png" alt="info" onclick="showTab7()">
         </div>
         <div style="font-size: 50px; text-align: center; flex: 1; padding-left: 0;">
             MiniWebRadio
@@ -2479,36 +2645,40 @@ function clear_BT_memItems(){
                     <div style="flex: 0 0 2px;">
                     </div>
                     <div style="flex: 0 0 42px;">
-                        <img src="SD/png/Button_Ready_Blue_s.png" alt="Upload" title="PLAY WEBFILE"
-                            onmousedown="this.src='SD/png/Button_Ready_Yellow_s.png'"
-                            ontouchstart="this.src='SD/png/Button_Ready_Yellow_s.png'"
-                            onmouseup="this.src='SD/png/Button_Ready_Blue_s.png'"
-                            ontouchend="this.src='SD/png/Button_Ready_Blue_s.png'"
+                        <img src="SD/png/Button_Ready_Blue.png" alt="Upload" title="PLAY WEBFILE"
+                            style="width: 42px; height: auto;"
+                            onmousedown="this.src='SD/png/Button_Ready_Yellow.png'"
+                            ontouchstart="this.src='SD/png/Button_Ready_Yellow.png'"
+                            onmouseup="this.src='SD/png/Button_Ready_Blue.png'"
+                            ontouchend="this.src='SD/png/Button_Ready_Blue.png'"
                             onclick="playWebURL()">
                     </div>
                     <div style="flex: 0 0 42px;">
-                        <img src="SD/png/Button_Upload_Blue_s.png" alt="Upload" title="UPLOAD TO SD FOLDER"
-                            onmousedown="this.src='SD/png/Button_Upload_Yellow_s.png'"
-                            ontouchstart="this.src='SD/png/Button_Upload_Yellow_s.png'"
-                            onmouseup="this.src='SD/png/Button_Upload_Blue_s.png'"
-                            ontouchend="this.src='SD/png/Button_Upload_Blue_s.png'"
+                        <img src="SD/png/Button_Upload_Blue.png" alt="Upload" title="UPLOAD TO SD FOLDER"
+                            style="width: 98%; height: auto;"
+                            onmousedown="this.src='SD/png/Button_Upload_Yellow.png'"
+                            ontouchstart="this.src='SD/png/Button_Upload_Yellow.png'"
+                            onmouseup="this.src='SD/png/Button_Upload_Blue.png'"
+                            ontouchend="this.src='SD/png/Button_Upload_Blue.png'"
                             onclick="javascript:document.getElementById('audioPlayer_File').click();">
                     </div>
                     <div style="flex: 0 0 42px;">
-                        <img src="SD/png/Button_Pause_Blue_s.png" alt="Pause" title="PAUSE"
-                            onmousedown="this.src='SD/png/Button_Pause_Yellow_s.png'"
-                            ontouchstart="this.src='SD/png/Button_Pause_Yellow_s.png'"
-                            onmouseup="this.src='SD/png/Button_Pause_Blue_s.png'"
-                            ontouchend="this.src='SD/png/Button_Pause_Blue_s.png'"
+                        <img src="SD/png/Button_Stop_Blue.png" alt="Pause" title="STOP"
+                            style="width: 98%; height: auto;"
+                            onmousedown="this.src='SD/png/Button_Stop_Yellow.png'"
+                            ontouchstart="this.src='SD/png/Button_Stop_Yellow.png'"
+                            onmouseup="this.src='SD/png/Button_Stop_Blue.png'"
+                            ontouchend="this.src='SD/png/Button_Stop_Blue.png'"
                             onclick="socket.send('stopfile');">
                     </div>
-                    <div style="flex: 0 0 40px;">
-                        <img src="SD/png/Button_Right_Blue_s.png" alt="Resume" title="RESUME"
-                            onmousedown="this.src='SD/png/Button_Right_Yellow_s.png'"
-                            ontouchstart="this.src='SD/png/Button_Right_Yellow_s.png'"
-                            onmouseup="this.src='SD/png/Button_Right_Blue_s.png'"
-                            ontouchend="this.src='SD/png/Button_Right_Blue_s.png'"
-                            onclick="socket.send('resumefile');" />
+                    <div style="flex: 0 0 42px;">
+                        <img src="SD/png/Button_Pause_Resume_Blue.png" alt="Pause Resume" title="PAUSE / RESUME"
+                            style="width: 98%; height: auto;"
+                            onmousedown="this.src='SD/png/Button_Pause_Resume_Yellow.png'"
+                            ontouchstart="this.src='SD/png/Button_Pause_Resume_Yellow.png'"
+                            onmouseup="this.src='SD/png/Button_Pause_Resume_Blue.png'"
+                            ontouchend="this.src='SD/png/Button_Pause_Resume_Blue.png'"
+                            onclick="socket.send('pause_resume');" />
                     </div>
                 </div>
                 <div id="explorerUploadProgress" class="progress-bar" role="progressbar"> </div>
@@ -2520,7 +2690,9 @@ function clear_BT_memItems(){
         </div>
     </div>
 
-<!--=====================================================DLNA======================================================================================-->
+<!--===============================================================================================================================================-->
+<!--=======================================================  D L N A  =============================================================================-->
+<!--===============================================================================================================================================-->
     <div id="tab-content4">
         <center>
             <div style="flex: 0 0 calc(100% - 0px);">
@@ -2575,7 +2747,8 @@ function clear_BT_memItems(){
         </div>
 
     </div>
-
+<!--===============================================================================================================================================-->
+<!--=======================================================  S E A R C H ==========================================================================-->
 <!--===============================================================================================================================================-->
     <div id="tab-content5">
         <div style="display: inline-block; width: 400px;">
@@ -2608,13 +2781,14 @@ function clear_BT_memItems(){
                 <input type="text" class="boxstyle" style="width: calc(100% - 8px);"
                 id="streamurl" placeholder="StreamURL">
             </div>
-             <div style="flex: 1; padding-left: 2px; height: 66px;">
+             <div style="flex: 2 0 42px;">
                 <img src="SD/png/Button_Ready_Blue.png" alt="Vol_up"
-                onmousedown="this.src='SD/png/Button_Ready_Yellow.png'"
-                ontouchstart="this.src='SD/png/Button_Ready_Yellow.png'"
-                onmouseup="this.src='SD/png/Button_Ready_Blue.png'"
-                ontouchend="this.src='SD/png/Button_Ready_Blue.png'"
-                onclick="teststreamurl()">
+                    style="width: 98%; height: auto;"
+                    onmousedown="this.src='SD/png/Button_Ready_Yellow.png'"
+                    ontouchstart="this.src='SD/png/Button_Ready_Yellow.png'"
+                    onmouseup="this.src='SD/png/Button_Ready_Blue.png'"
+                    ontouchend="this.src='SD/png/Button_Ready_Blue.png'"
+                    onclick="teststreamurl()">
             </div>
         </div>
         <div style="display: flex;">
@@ -2654,9 +2828,12 @@ function clear_BT_memItems(){
             <div style="flex: 1;">
                 <div style="flex: 1; height: 38px; padding-left: 10px;">
                     <input type="text" class="boxstyle" style="width: calc(100% - 74px);"
-                                id="rb_stationname" placeholder="Change the Stationname here">
+                                id="rb_stationname" placeholder="Change the Stationname here"
+                                oninput="validateStationname()"
+                                title="Here the station name can be changed. Since the station name is the same as the file name of the logo,
+                                 invalid characters colour the content red.">
                 </div>
-                <div style="flex: 1;  padding-top: 4px; padding-left: 10px;">
+                <div style="flex: 1; justify-content: flex-end; padding-top: 4px; padding-left: 10px;">
                     <img src="SD/png/Button_Upload_Blue.png" alt="Upload" title="UPLOAD TO SD FOLDER"
                         onmousedown="this.src='SD/png/Button_Upload_Yellow.png'"
                         ontouchstart="this.src='SD/png/Button_Upload_Yellow.png'"
@@ -2675,11 +2852,15 @@ function clear_BT_memItems(){
                         onmouseup="this.src='SD/png/Button_Previous_Blue.png'"
                         ontouchend="this.src='SD/png/Button_Previous_Blue.png'"
                         onclick="addStationsToGrid()"/>
-                    <form method="post" accept-charset="utf-8" name="form1">
-                        <input name="hidden_data" id="hidden_data" type="hidden">
-                    </form>
+
+                    <input class="boxstyle" style="width: 50px; text-align: center; margin-top: 15px;
+                           vertical-align: top; margin-left: 10px;" type="text" id="CountryCode" placeholder="CC"
+                           title="Country Code">
                 </div>
             </div>
+            <form method="post" accept-charset="utf-8" name="form1">
+                <input name="hidden_data" id="hidden_data" type="hidden">
+            </form>
         </div>
     </div>
 <!--===============================================================================================================================================-->
@@ -2714,8 +2895,12 @@ function clear_BT_memItems(){
                     <div>
                         <h3>
                             Time announcement on the hour
-                            <input  type="checkbox" id="chk_timeSpeech"
+                            <input style="transform: scale(1.8); margin: 10px;" type="checkbox" id="chk_timeSpeech"
                                     onclick="socket.send('set_timeAnnouncement=' + document.getElementById('chk_timeSpeech').checked);">
+                            <select class="boxstyle" onchange="socket.send('setTimeSpeechLang=' + this.value)" id="timeSpeechLang" name="timeSpeechLang">
+                                <option value="fr">fr</option>
+                                <option value="en">en</option>
+                            </select>
                         </h3>
                     </div>
                 </td>
@@ -2793,7 +2978,7 @@ function clear_BT_memItems(){
         <table>
             <tr>
                 <label for="label-infopic" onclick="socket.send('hardcopy')">
-                    <img id="label-infopic" src="SD/png/MiniWebRadioV3.png" alt="img">
+                    <img id="label-infopic" src="SD/common/MiniWebRadioV4.jpg" alt="img">
                 </label>
             </tr>
         </table>
@@ -2812,53 +2997,68 @@ function clear_BT_memItems(){
             <th style="width:180px; text-align: left;"> IR command </th>
             <th></th>
             <th></th>
-            <th style="width:180px; text-align: left;"> long pressed </th>
+            <th style="width:180px; text-align: left;"></th>
+            <th></th>
+            <th></th>
+            <th style="width:180px; text-align: left;"></th>
             <th></th>
             </tr>
 
             <tr>
             <td> 0 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_0" onclick="IRclick(0)"  onkeyup="chIRcmd(0)" onchange="IRupdateJSON(0)"></td>
-            <td class="table_cell1"> ZERO </td>
+            <td class="table_cell1"> НОЛЬ </td>
             <td> 10 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_10" onclick="IRclick(10)" onkeyup="chIRcmd(10)" onchange="IRupdateJSON(10)"></td>
-            <td class="table_cell2"> MUTE </td>
+            <td class="table_cell2"> ЗВУК ВЫКЛ </td>
             <td> 20 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_20" onclick="IRclick(20)" onkeyup="chIRcmd(20)" onchange="IRupdateJSON(20)"></td>
-            <td class="table_cell2"> LONG SLEEP </td>
+            <td class="table_cell2"> ВКЛ/ВЫКЛ </td>
+            <td> 30 </td>
+            <td> <input type="text" class="boxstyle_s" id="ir_command_30" onclick="IRclick(30)" onkeyup="chIRcmd(30)" onchange="IRupdateJSON(30)"></td>
+            <td class="table_cell2"> ДЛИННЫЙ ДИСПТАЙМЕР </td>
             </tr>
 
             <tr>
             <td> 1 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_1" onclick="IRclick(1)" onkeyup="chIRcmd(1)" onchange="IRupdateJSON(1)"></td>
-            <td class="table_cell1"> ONE</td>
+            <td class="table_cell1"> ОДИН </td>
             <td> 11 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_11" onclick="IRclick(11)" onkeyup="chIRcmd(11)" onchange="IRupdateJSON(11)"></td>
-            <td class="table_cell2"> ARROW RIGHT </td>
+            <td class="table_cell2"> СТРЕЛКА НАПРАВО </td>
             <td> 21 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_21" onclick="IRclick(21)" onkeyup="chIRcmd(21)" onchange="IRupdateJSON(21)"></td>
-            <td class="table_cell2"> LONG CANCEL </td>
+            <td class="table_cell2"> ВОСПРОИЗВЕДЕНИЕ ПО ПОРЯДКУ </td>
+            <td> 31 </td>
+            <td> <input type="text" class="boxstyle_s" id="ir_command_31" onclick="IRclick(31)" onkeyup="chIRcmd(31)" onchange="IRupdateJSON(31)"></td>
+            <td class="table_cell2"> ДЛИННЫЙ ОТМЕНА/ПАУЗА/ВОСПРОИЗВЕДЕНИЕ </td>
             </tr>
 
             <tr>
             <td> 2 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_2" onclick="IRclick(2)" onkeyup="chIRcmd(2)" onchange="IRupdateJSON(2)"></td>
-            <td class="table_cell1">  TWO </td>
+            <td class="table_cell1">  ДВА </td>
             <td> 12 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_12" onclick="IRclick(12)" onkeyup="chIRcmd(12)" onchange="IRupdateJSON(12)"></td>
-            <td class="table_cell2"> ARROW LEFT </td>
+            <td class="table_cell2"> СТРЕЛКА НАЛЕВО </td>
             <td> 22 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_22" onclick="IRclick(22)" onkeyup="chIRcmd(22)" onchange="IRupdateJSON(22)"></td>
-            <td class="table_cell2"> LONG SETUP </td>
+            <td class="table_cell2"> СЛУЧАЙНОЕ ВОСПРОИЗВЕДЕНИЕ </td>
+            <td> 32 </td>
+            <td> <input type="text" class="boxstyle_s" id="ir_command_32" onclick="IRclick(32)" onkeyup="chIRcmd(32)" onchange="IRupdateJSON(32)"></td>
+            <td class="table_cell2"> ДЛИННЫЙ УСТАНОВКИ </td>
             </tr>
 
             <tr>
             <td> 3 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_3" onclick="IRclick(3)" onkeyup="chIRcmd(3)" onchange="IRupdateJSON(3)"></td>
-            <td class="table_cell1">  THREE </td>
+            <td class="table_cell1">  ТРИ </td>
             <td> 13 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_13" onclick="IRclick(13)" onkeyup="chIRcmd(13)" onchange="IRupdateJSON(13)"></td>
-            <td class="table_cell2"> ARROW DOWN</td>
+            <td class="table_cell2"> СТРЕЛКА ВНИЗ </td>
+            <td> 23 </td>
+            <td> <input type="text" class="boxstyle_s" id="ir_command_23" onclick="IRclick(23)" onkeyup="chIRcmd(23)" onchange="IRupdateJSON(23)"></td>
+            <td class="table_cell2"> << 30s </td>
             <td></td>
             <td></td>
             <td></td>
@@ -2867,10 +3067,13 @@ function clear_BT_memItems(){
             <tr>
             <td> 4 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_4" onclick="IRclick(4)" onkeyup="chIRcmd(4)" onchange="IRupdateJSON(4)"></td>
-            <td class="table_cell1"> FOUR </td>
+            <td class="table_cell1"> ЧЕТЫРЕ </td>
             <td> 14 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_14" onclick="IRclick(14)" onkeyup="chIRcmd(14)" onchange="IRupdateJSON(14)"></td>
-            <td class="table_cell2"> ARROW UP </td>
+            <td class="table_cell2"> СТРЕЛКА ВВЕРХ </td>
+            <td> 24 </td>
+            <td> <input type="text" class="boxstyle_s" id="ir_command_24" onclick="IRclick(24)" onkeyup="chIRcmd(24)" onchange="IRupdateJSON(24)"></td>
+            <td class="table_cell2"> >> 30s </td>
             <td></td>
             <td></td>
             <td></td>
@@ -2879,10 +3082,13 @@ function clear_BT_memItems(){
             <tr>
             <td> 5 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_5" onclick="IRclick(5)" onkeyup="chIRcmd(5)" onchange="IRupdateJSON(5)"></td>
-            <td class="table_cell1"> FIVE </td>
+            <td class="table_cell1"> ПЯТЬ </td>
             <td> 15 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_15" onclick="IRclick(15)" onkeyup="chIRcmd(15)" onchange="IRupdateJSON(15)"></td>
-            <td class="table_cell2"> MODE </td>
+            <td class="table_cell2"> РЕЖИМ РАДИО/ПЛЕЕР </td>
+            <td> 25 </td>
+            <td> <input type="text" class="boxstyle_s" id="ir_command_25" onclick="IRclick(25)" onkeyup="chIRcmd(25)" onchange="IRupdateJSON(25)"></td>
+            <td class="table_cell2"> ПАУЗА/ПРОДОЛЖИТЬ </td>
             <td></td>
             <td></td>
             <td></td>
@@ -2891,10 +3097,13 @@ function clear_BT_memItems(){
             <tr>
             <td> 6 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_6" onclick="IRclick(6)" onkeyup="chIRcmd(6)" onchange="IRupdateJSON(6)"></td>
-            <td class="table_cell1"> SIX </td>
+            <td class="table_cell1"> ШЕСТЬ </td>
             <td> 16 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_16" onclick="IRclick(16)" onkeyup="chIRcmd(16)" onchange="IRupdateJSON(16)"></td>
             <td class="table_cell2"> OK </td>
+            <td> 26 </td>
+            <td> <input type="text" class="boxstyle_s" id="ir_command_26" onclick="IRclick(26)" onkeyup="chIRcmd(26)" onchange="IRupdateJSON(26)"></td>
+            <td class="table_cell2"> СТОП </td>
             <td></td>
             <td></td>
             <td></td>
@@ -2903,10 +3112,13 @@ function clear_BT_memItems(){
             <tr>
             <td> 7 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_7" onclick="IRclick(7)" onkeyup="chIRcmd(7)" onchange="IRupdateJSON(7)"></td>
-            <td class="table_cell1"> SEVEN </td>
+            <td class="table_cell1"> СЕМЬ </td>
             <td> 17 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_17" onclick="IRclick(17)" onkeyup="chIRcmd(17)" onchange="IRupdateJSON(17)"></td>
-            <td class="table_cell2"> CLOCK AUDIOFILESLIST </td>
+            <td class="table_cell2"> ЧАСЫ </td>
+            <td> 27 </td>
+            <td> <input type="text" class="boxstyle_s" id="ir_command_27" onclick="IRclick(27)" onkeyup="chIRcmd(27)" onchange="IRupdateJSON(27)"></td>
+            <td class="table_cell2"> ПРЕДЫДУЩИЙ </td>
             <td></td>
             <td></td>
             <td></td>
@@ -2915,10 +3127,13 @@ function clear_BT_memItems(){
             <tr>
             <td> 8 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_8" onclick="IRclick(8)" onkeyup="chIRcmd(8)" onchange="IRupdateJSON(8)"></td>
-            <td class="table_cell1"> EIGHT </td>
+            <td class="table_cell1"> ВОСЕМЬ </td>
             <td> 18 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_18" onclick="IRclick(18)" onkeyup="chIRcmd(18)" onchange="IRupdateJSON(18)"></td>
-            <td class="table_cell2"> SLEEP TIMER </td>
+            <td class="table_cell2"> ТАЙМЕР ВЫКЛЮЧЕНИЯ </td>
+            <td> 28 </td>
+            <td> <input type="text" class="boxstyle_s" id="ir_command_28" onclick="IRclick(28)" onkeyup="chIRcmd(28)" onchange="IRupdateJSON(28)"></td>
+            <td class="table_cell2"> ДИСПЛЕЙ ВЫКЛ </td>
             <td></td>
             <td></td>
             <td></td>
@@ -2927,10 +3142,13 @@ function clear_BT_memItems(){
             <tr>
             <td> 9 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_9" onclick="IRclick(9)" onkeyup="chIRcmd(9)" onchange="IRupdateJSON(9)"></td>
-            <td class="table_cell1"> NINE </td>
+            <td class="table_cell1"> ДЕВЯТЬ </td>
             <td> 19 </td>
             <td> <input type="text" class="boxstyle_s" id="ir_command_19" onclick="IRclick(19)" onkeyup="chIRcmd(19)" onchange="IRupdateJSON(19)"></td>
-            <td class="table_cell2"> CHANGE SUBMENUE </td>
+            <td class="table_cell2"> СМЕНА СУБМЕНЮ </td>
+            <td> 29 </td>
+            <td> <input type="text" class="boxstyle_s" id="ir_command_29" onclick="IRclick(29)" onkeyup="chIRcmd(29)" onchange="IRupdateJSON(29)"></td>
+            <td class="table_cell2"> МЕНЮ ФУНКЦИЙ </td>
             <td></td>
             <td></td>
             <td></td>
